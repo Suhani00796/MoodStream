@@ -21,6 +21,18 @@ class MoodBotApp {
         this.isProcessing = false;
         this.messageHistory = [];
 
+        // Question-based interaction tracking
+        this.moodQuestions = [
+            "How has your energy been today? (High/Low)",
+            "Are you in the mood for something upbeat or something soulful?",
+            "If your day was a movie genre, what would it be right now?",
+            "Pick a color that matches your vibe: Neon Green, Deep Blue, or Sunset Orange?",
+            "Finally, tell me one word that describes your current environment."
+        ];
+        this.currentQuestionIndex = 0;
+        this.userAnswers = [];
+        this.inQuestionMode = false;
+
         // Initialize the app
         this.init();
     }
@@ -103,10 +115,13 @@ class MoodBotApp {
                     this.setupContainer.classList.remove('fade-out');
                 }, 500);
 
+                // Start the question-based interaction
+                this.startQuestionMode();
+
                 // Focus on input field
                 this.userInput.focus();
             }, 1000);
-
+            
             console.log('✅ Mood Bot is ready!');
         } catch (error) {
             console.error('Failed to initialize Mood Bot:', error);
@@ -165,38 +180,44 @@ class MoodBotApp {
         const typingIndicator = this.addTypingIndicator();
 
         try {
-            // Simulate a short delay for better UX (optional)
-            await this.delay(800);
+            // If in question mode, collect answers
+            if (this.inQuestionMode) {
+                typingIndicator.remove();
+                this.handleQuestionResponse(userMessage);
+            } else {
+                // Simulate a short delay for better UX (optional)
+                await this.delay(800);
 
-            // Analyze the mood using the ML model
-            const moodResult = await moodDetector.getMood(userMessage);
-            console.log('Mood analysis result:', moodResult);
+                // Analyze the mood using the ML model
+                const moodResult = await moodDetector.getMood(userMessage);
+                console.log('Mood analysis result:', moodResult);
 
-            // Get formatted response
-            const response = moodDetector.getResponseMessage(moodResult);
+                // Get formatted response
+                const response = moodDetector.getResponseMessage(moodResult);
 
-            // Remove typing indicator
-            typingIndicator.remove();
+                // Remove typing indicator
+                typingIndicator.remove();
 
-            // Add bot response with the mood for YouTube search
-            this.addBotMessageWithPlaylist(
-                response.message,
-                response.playlistMessage,
-                response.playlist,
-                moodResult
-            );
+                // Add bot response with the mood for YouTube search
+                this.addBotMessageWithPlaylist(
+                    response.message,
+                    response.playlistMessage,
+                    response.playlist,
+                    moodResult
+                );
 
-            // Save to history
-            this.messageHistory.push({
-                type: 'user',
-                content: userMessage,
-                timestamp: Date.now()
-            });
-            this.messageHistory.push({
-                type: 'bot',
-                content: response,
-                timestamp: Date.now()
-            });
+                // Save to history
+                this.messageHistory.push({
+                    type: 'user',
+                    content: userMessage,
+                    timestamp: Date.now()
+                });
+                this.messageHistory.push({
+                    type: 'bot',
+                    content: response,
+                    timestamp: Date.now()
+                });
+            }
 
         } catch (error) {
             console.error('Error processing message:', error);
@@ -207,6 +228,151 @@ class MoodBotApp {
             this.sendBtn.disabled = false;
             this.userInput.focus();
         }
+    }
+
+    /**
+     * Start the question-based interaction mode
+     */
+    startQuestionMode() {
+        this.inQuestionMode = true;
+        this.currentQuestionIndex = 0;
+        this.userAnswers = [];
+        
+        // Ask the first question
+        this.addBotMessage(this.moodQuestions[0]);
+        console.log('📝 Starting question mode - Question 1 of', this.moodQuestions.length);
+    }
+
+    /**
+     * Handle user response to a question
+     */
+    handleQuestionResponse(answer) {
+        // Store the answer
+        this.userAnswers.push(answer);
+        console.log(`Answer ${this.currentQuestionIndex + 1}:`, answer);
+
+        // Move to next question
+        this.currentQuestionIndex++;
+
+        // Check if all questions answered
+        if (this.currentQuestionIndex < this.moodQuestions.length) {
+            // Ask next question
+            this.addBotMessage(this.moodQuestions[this.currentQuestionIndex]);
+            console.log(`📝 Question ${this.currentQuestionIndex + 1} of ${this.moodQuestions.length}`);
+        } else {
+            // All questions answered - process mood
+            this.inQuestionMode = false;
+            this.processFinalMood();
+        }
+    }
+
+    /**
+     * Process final mood after all questions are answered
+     */
+    async processFinalMood() {
+        console.log('🎯 Processing final mood analysis...');
+        console.log('User answers:', this.userAnswers);
+
+        // Show thinking message
+        this.addBotMessage('Got it! Analyzing your vibe... 🎧');
+        
+        try {
+            // Combine all answers into context for the mood detector
+            const fullContext = this.userAnswers.join(" ");
+            
+            // Analyze mood with full context
+            const detectedMood = await moodDetector.getMood(fullContext);
+            console.log('Detected mood:', detectedMood);
+            
+            // Get mood-specific response
+            const response = moodDetector.getResponseMessage(detectedMood);
+            
+            // Make smart YouTube suggestion based on all answers
+            this.suggestYouTubeMusic(detectedMood, response);
+            
+            // Reset for next conversation
+            this.currentQuestionIndex = 0;
+            this.userAnswers = [];
+        } catch (error) {
+            console.error('Error in final mood processing:', error);
+            this.addBotMessage('😅 Let me try that again...');
+        }
+    }
+
+    /**
+     * Suggest YouTube music with smart query based on all user answers
+     */
+    suggestYouTubeMusic(mood, response) {
+        let query = "";
+        const answersText = this.userAnswers.join(" ").toLowerCase();
+        
+        // Smart query generation based on user answers
+        if (answersText.includes("low") || answersText.includes("deep blue")) {
+            query = "lofi hip hop radio beats to relax study";
+        } else if (answersText.includes("high") || answersText.includes("neon green")) {
+            query = "high energy bollywood dance hits 2026 non-stop";
+        } else if (answersText.includes("soulful") || answersText.includes("sad")) {
+            query = "bollywood sad songs playlist emotional";
+        } else if (answersText.includes("upbeat") || answersText.includes("happy")) {
+            query = "upbeat bollywood party mix 2026 non-stop";
+        } else if (answersText.includes("horror") || answersText.includes("thriller")) {
+            query = "intense dramatic music adrenaline rush";
+        } else if (answersText.includes("comedy")) {
+            query = "upbeat funky bollywood comedy songs mix";
+        } else if (answersText.includes("romance") || answersText.includes("romantic")) {
+            query = "bollywood romantic mashup love songs 2026";
+        } else if (answersText.includes("sunset orange")) {
+            query = "warm ambient sunset music relaxing vibes";
+        } else {
+            // Default to mood-based query
+            query = `${mood} music mix playlist hindi english`;
+        }
+        
+        // Encode and create YouTube URL
+        const encodedQuery = encodeURIComponent(query);
+        const youtubeUrl = `https://www.youtube.com/results?search_query=${encodedQuery}`;
+        
+        console.log('🎵 YouTube query:', query);
+        
+        // Display final response with YouTube button
+        const messageDiv = document.createElement('div');
+        messageDiv.className = 'message bot-message';
+        messageDiv.setAttribute('data-testid', 'bot-message-with-playlist');
+
+        messageDiv.innerHTML = `
+            <div class=\"message-avatar bot-avatar\">
+                <svg width=\"24\" height=\"24\" viewBox=\"0 0 24 24\" fill=\"none\" xmlns=\"http://www.w3.org/2000/svg\">
+                    <circle cx=\"12\" cy=\"12\" r=\"10\" fill=\"#1DB954\"/>
+                    <path d=\"M8 14s1.5 2 4 2 4-2 4-2M9 9h.01M15 9h.01\" stroke=\"#000\" stroke-width=\"2\" stroke-linecap=\"round\"/>
+                </svg>
+            </div>
+            <div class=\"message-content\">
+                <p>${this.formatMessage(response.message)}</p>
+                <p>${response.playlistMessage}</p>
+                <p>
+                    <strong>🎧 Based on Your Vibe</strong><br>
+                    <em>Curated from your answers: ${query}</em>
+                </p>
+                <p>
+                    <button class=\"playlist-link\" data-testid=\"playlist-link\">
+                        🎵 Open My Vibe on YouTube
+                    </button>
+                </p>
+            </div>
+        `;
+
+        this.chatContainer.appendChild(messageDiv);
+        
+        // Add click handler to open YouTube
+        const playlistBtn = messageDiv.querySelector('.playlist-link');
+        if (playlistBtn) {
+            playlistBtn.addEventListener('click', () => {
+                console.log('🎵 Opening YouTube URL:', youtubeUrl);
+                window.open(youtubeUrl, '_blank');
+            });
+        }
+
+        this.scrollToBottom();
     }
 
     /**
@@ -345,10 +511,15 @@ class MoodBotApp {
         const messages = this.chatContainer.querySelectorAll('.message:not([data-testid=\"welcome-message\"])');
         messages.forEach(msg => msg.remove());
 
-        // Clear history
+        // Clear history and reset to question mode
         this.messageHistory = [];
+        this.userAnswers = [];
+        this.currentQuestionIndex = 0;
+        
+        // Restart question mode
+        this.startQuestionMode();
 
-        console.log('Chat cleared!');
+        console.log('Chat cleared and restarted!');
     }
 
     /**
