@@ -44,6 +44,3 @@ Most chatbots rely on expensive, data-hungry APIs. **Mood Bot** detects your moo
 4.  **Offline Storage:** Service worker caches all static assets on first visit—works offline forever.
 
 -----
-
-## This is my site page
-https://suhani00796.github.io/MoodStream/
