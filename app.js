@@ -109,9 +109,12 @@ class MoodBotApp {
             console.log('✅ Mood Bot is ready!');
         } catch (error) {
             console.error('Failed to load model:', error);
-            this.statusMessage.textContent = '❌ Failed to load model. Please refresh the page.';
+            this.statusMessage.textContent = `❌ Model Load Error: ${error.message}`;
             this.statusMessage.style.color = '#ff4444';
             this.progressText.textContent = 'Error';
+            
+            // Show detailed error in console
+            console.error('Full error details:', error);
         }
     }
 

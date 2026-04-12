@@ -91,9 +91,13 @@
         </div>
     </div>
 
-    <script type="module" src="https://cdn.jsdelivr.net/npm/@xenova/transformers@2.17.1"></script>
-    <script type="module" src="model.js"></script>
-    <script type="module" src="app.js"></script>
+    <script type="module">
+        // Load model.js first, which imports transformers
+        import('./model.js').catch(err => console.error('Failed to load model.js:', err));
+        
+        // Then load app.js
+        import('./app.js').catch(err => console.error('Failed to load app.js:', err));
+    </script>
 
     <script>
         // Register service worker for offline capability
