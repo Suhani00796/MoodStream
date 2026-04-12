@@ -1,0 +1,106 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mood Bot - Offline ML Chatbot</title>
+    <link rel="stylesheet" href="style.css">
+    <!-- Google Fonts - Spotify uses Circular, but we'll use Montserrat + Inter as web-safe alternatives -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@600;700;800&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
+</head>
+<body>
+    <!-- Model Loading Overlay -->
+    <div id="setup-container" class="active">
+        <div class="setup-content">
+            <div class="logo-pulse">
+                <svg width="60" height="60" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8zm-1-13h2v6h-2zm0 8h2v2h-2z" fill="#1DB954"/>
+                </svg>
+            </div>
+            <h2 id="status-message">Downloading Brain (Offline ML Model)...</h2>
+            <p class="status-subtitle">First-time setup • ~200MB • Runs entirely in your browser</p>
+            
+            <div class="progress-wrapper">
+                <div id="progress-bar"></div>
+            </div>
+            <p id="progress-text">0%</p>
+            
+            <div class="tech-badge">
+                <span>🧠 DistilBERT</span>
+                <span>🔒 100% Private</span>
+                <span>⚡ Edge AI</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- Main Chat Interface -->
+    <div id="app-container">
+        <!-- Header -->
+        <header class="chat-header">
+            <div class="header-content">
+                <div class="brand">
+                    <div class="brand-icon">
+                        <svg width="32" height="32" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                            <circle cx="12" cy="12" r="10" fill="#1DB954"/>
+                            <path d="M12 8v8M8 12h8" stroke="#000" stroke-width="2" stroke-linecap="round"/>
+                        </svg>
+                    </div>
+                    <div>
+                        <h1>Mood Bot</h1>
+                        <p class="subtitle">Offline ML • Hindi & Global Playlists</p>
+                    </div>
+                </div>
+                <button id="clear-chat-btn" class="clear-btn" data-testid="clear-chat-button">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                        <path d="M3 6h18M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                    </svg>
+                    Clear Chat
+                </button>
+            </div>
+        </header>
+
+        <!-- Chat Messages Container -->
+        <div id="chat-container" class="chat-messages" data-testid="chat-container">
+            <!-- Welcome Message -->
+            <div class="message bot-message" data-testid="welcome-message">
+                <div class="message-avatar bot-avatar">
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                        <circle cx="12" cy="12" r="10" fill="#1DB954"/>
+                        <path d="M8 14s1.5 2 4 2 4-2 4-2M9 9h.01M15 9h.01" stroke="#000" stroke-width="2" stroke-linecap="round"/>
+                    </svg>
+                </div>
+                <div class="message-content">
+                    <p>Hey there! 👋 I'm your offline mood companion.</p>
+                    <p>Tell me how you're feeling today, and I'll find the perfect Hindi/Global mix to match your vibe. Everything runs locally in your browser - your thoughts stay private! 🔒</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Input Area -->
+        <div class="input-container">
+            <div class="input-wrapper">
+                <input 
+                    type="text" 
+                    id="user-input" 
+                    placeholder="How are you feeling today?"
+                    data-testid="user-input-field"
+                    autocomplete="off"
+                />
+                <button id="send-btn" class="send-btn" data-testid="send-button">
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                        <path d="M22 2L11 13M22 2l-7 20-4-9-9-4 20-7z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                    </svg>
+                </button>
+            </div>
+            <p class="input-hint">Press Enter to send • Powered by Transformers.js</p>
+        </div>
+    </div>
+
+    <!-- Scripts: Load Transformers.js from CDN, then our custom modules -->
+    <script type="module" src="https://cdn.jsdelivr.net/npm/@xenova/transformers@2.17.1"></script>
+    <script type="module" src="model.js"></script>
+    <script type="module" src="app.js"></script>
+</body>
+</html>
