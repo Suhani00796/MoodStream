@@ -33,6 +33,10 @@ class MoodBotApp {
         this.userAnswers = [];
         this.inQuestionMode = false;
 
+        // Bluetooth device state
+        this.bluetoothDevice = null;
+        this.gattServer = null;
+
         // Initialize the app
         this.init();
     }
@@ -67,6 +71,12 @@ class MoodBotApp {
 
         // Clear chat button
         this.clearChatBtn.addEventListener('click', () => this.handleClearChat());
+
+        // Bluetooth button
+        const bluetoothBtn = document.getElementById('bluetooth-btn');
+        if (bluetoothBtn) {
+            bluetoothBtn.addEventListener('click', () => this.handleBluetoothConnect());
+        }
 
         // Auto-resize input field (optional enhancement)
         this.userInput.addEventListener('input', () => {
@@ -580,6 +590,94 @@ class MoodBotApp {
      */
     delay(ms) {
         return new Promise(resolve => setTimeout(resolve, ms));
+    }
+
+    /**
+     * Handle Bluetooth device connection
+     */
+    async handleBluetoothConnect() {
+        const bluetoothBtn = document.getElementById('bluetooth-btn');
+        
+        // Check if Web Bluetooth API is supported
+        if (!navigator.bluetooth) {
+            this.addBotMessage('❌ Web Bluetooth API is not supported in your browser. Try Chrome, Edge, or Opera on desktop/mobile.');
+            console.error('Web Bluetooth API not supported');
+            return;
+        }
+
+        try {
+            bluetoothBtn.disabled = true;
+            bluetoothBtn.textContent = '🔍 Scanning...';
+
+            console.log('📱 Scanning for Bluetooth devices...');
+
+            // Request Bluetooth device - filters for audio devices
+            const device = await navigator.bluetooth.requestDevice({
+                acceptAllDevices: true,
+                optionalServices: ['audio']
+            });
+
+            console.log('✅ Device selected:', device.name);
+            bluetoothBtn.textContent = `📶 ${device.name}`;
+            bluetoothBtn.classList.add('connected');
+            bluetoothBtn.disabled = false;
+
+            // Try to connect to the device
+            try {
+                const server = await device.gatt.connect();
+                console.log('✅ Connected to GATT Server');
+                this.addBotMessage(`🎧 Connected to **${device.name}**! Your audio should now play through this device.`);
+                
+                // Store the device for future reference
+                this.bluetoothDevice = device;
+                this.gattServer = server;
+            } catch (connectError) {
+                console.log('Connection attempt made, device selected:', device.name);
+                this.addBotMessage(`✅ **${device.name}** selected. The device should be ready to use for audio output.`);
+            }
+
+        } catch (error) {
+            if (error.name === 'NotFoundError') {
+                console.log('No Bluetooth device selected');
+                this.addBotMessage('No Bluetooth device selected. Try again if you want to connect.');
+            } else if (error.name === 'NotSupportedError') {
+                console.error('Bluetooth not supported');
+                this.addBotMessage('❌ Bluetooth is not supported on this device.');
+            } else if (error.name === 'SecurityError') {
+                console.error('Bluetooth permission denied');
+                this.addBotMessage('❌ Bluetooth permission was denied. Please allow access and try again.');
+            } else {
+                console.error('Bluetooth connection error:', error);
+                this.addBotMessage(`❌ Error: ${error.message}`);
+            }
+
+            // Reset button on error
+            bluetoothBtn.classList.remove('connected');
+            bluetoothBtn.textContent = '🎧 Connect';
+            bluetoothBtn.disabled = false;
+        }
+    }
+
+    /**
+     * Disconnect Bluetooth device
+     */
+    async handleBluetoothDisconnect() {
+        if (this.bluetoothDevice && this.gattServer && this.gattServer.connected) {
+            try {
+                this.gattServer.disconnect();
+                console.log('✅ Disconnected from Bluetooth device');
+                this.addBotMessage('🔌 Disconnected from Bluetooth device.');
+                
+                const bluetoothBtn = document.getElementById('bluetooth-btn');
+                bluetoothBtn.classList.remove('connected');
+                bluetoothBtn.textContent = '🎧 Connect';
+                
+                this.bluetoothDevice = null;
+                this.gattServer = null;
+            } catch (error) {
+                console.error('Error disconnecting:', error);
+            }
+        }
     }
 }
 

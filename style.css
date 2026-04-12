@@ -255,6 +255,54 @@ body::before {
     transform: translateY(0);
 }
 
+/* Bluetooth Button */
+.bluetooth-btn {
+    background: transparent;
+    color: var(--text-secondary);
+    border: 1px solid var(--border-color);
+    padding: 10px 18px;
+    border-radius: 24px;
+    font-size: 0.875rem;
+    font-weight: 500;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-family: var(--font-body);
+    transition: all 0.2s ease;
+}
+
+.bluetooth-btn:hover {
+    background: var(--bg-elevated);
+    border-color: var(--spotify-green);
+    color: var(--spotify-green);
+    transform: translateY(-1px);
+}
+
+.bluetooth-btn:active {
+    transform: translateY(0);
+}
+
+.bluetooth-btn.connected {
+    background: var(--spotify-green);
+    border-color: var(--spotify-green);
+    color: #000;
+}
+
+.bluetooth-btn.connected:hover {
+    background: var(--spotify-green-light);
+    border-color: var(--spotify-green-light);
+}
+
+.bluetooth-status {
+    font-size: 0.75rem;
+    display: inline-block;
+}
+
+.bluetooth-btn.connected .bluetooth-status::before {
+    content: '✓ ';
+}
+
 /* ========================================
    CHAT MESSAGES AREA
    ======================================== */
