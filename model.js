@@ -1,4 +1,4 @@
-"/* ========================================
+/* ========================================
    MODEL.JS - Offline ML Logic with Transformers.js
    Handles model loading, emotion detection, and playlist mapping
    ======================================== */
@@ -47,7 +47,7 @@ class MoodDetector {
             'surprise': {
                 name: 'Trending Vibrant Mix',
                 url: 'https://open.spotify.com/playlist/37i9dQZF1DXcBWIGoYBM5M', // Today's Top Hits
-                description: 'Trending global and Hindi tracks that'll keep you guessing!'
+                description: 'Trending global and Hindi tracks that will keep you guessing!'
             }
         };
     }
@@ -204,9 +204,7 @@ class MoodDetector {
         const messages = responseTemplates[emotion] || responseTemplates['surprise'];
 
         return {
-            message: messages.join('
-
-'),
+            message: messages.join('\n\n'),
             playlistMessage: `Here's a mix of Global and Hindi tracks to match your vibe:`,
             playlist: playlist
         };
@@ -224,4 +222,3 @@ class MoodDetector {
 // Create and export a singleton instance
 const moodDetector = new MoodDetector();
 export default moodDetector;
-"
