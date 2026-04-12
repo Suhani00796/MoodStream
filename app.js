@@ -178,11 +178,12 @@ class MoodBotApp {
             // Remove typing indicator
             typingIndicator.remove();
 
-            // Add bot response
+            // Add bot response with the mood for YouTube search
             this.addBotMessageWithPlaylist(
                 response.message,
                 response.playlistMessage,
-                response.playlist
+                response.playlist,
+                moodResult
             );
 
             // Save to history
@@ -259,7 +260,7 @@ class MoodBotApp {
     /**
      * Add a bot message with playlist recommendation
      */
-    addBotMessageWithPlaylist(mainMessage, playlistMessage, playlist) {
+    addBotMessageWithPlaylist(mainMessage, playlistMessage, playlist, mood) {
         const messageDiv = document.createElement('div');
         messageDiv.className = 'message bot-message';
         messageDiv.setAttribute('data-testid', 'bot-message-with-playlist');
@@ -279,14 +280,21 @@ class MoodBotApp {
                     <em>${playlist.description}</em>
                 </p>
                 <p>
-                    <a href=\"${playlist.url}\" target=\"_blank\" rel=\"noopener noreferrer\" class=\"playlist-link\" data-testid=\"playlist-link\">
-                        Open on Spotify
-                    </a>
+                    <button class=\"playlist-link\" data-testid=\"playlist-link\" data-mood=\"${mood}\">
+                        🎵 Open on YouTube
+                    </button>
                 </p>
             </div>
         `;
 
         this.chatContainer.appendChild(messageDiv);
+        
+        // Add click handler to the playlist button
+        const playlistBtn = messageDiv.querySelector('.playlist-link');
+        if (playlistBtn && mood) {
+            playlistBtn.addEventListener('click', () => this.openMoodPlaylist(mood));
+        }
+
         this.scrollToBottom();
     }
 
@@ -365,6 +373,35 @@ class MoodBotApp {
         const div = document.createElement('div');
         div.textContent = text;
         return div.innerHTML;
+    }
+
+    /**
+     * Open YouTube search with mood-specific playlist query
+     * Maps detected mood to optimized search terms for better results
+     */
+    openMoodPlaylist(detectedMood) {
+        // Map moods to specific search terms for better YouTube results
+        const moodQueries = {
+            'joy': 'upbeat bollywood party mix 2026 playlist non-stop',
+            'sadness': 'soulful lo-fi hindi sad songs playlist non-stop',
+            'anger': 'aggressive gym workout phonk mix energetic',
+            'fear': 'peaceful calm meditation music relaxing',
+            'love': 'bollywood romantic mashup 2026 playlist love songs',
+            'surprise': 'upbeat party music mix non-stop hindi global'
+        };
+
+        // Get the query based on mood, or use a default
+        const query = moodQueries[detectedMood] || `${detectedMood} music playlist non-stop`;
+        
+        // Encode the string for a URL (replaces spaces with +)
+        const encodedQuery = encodeURIComponent(query);
+        
+        // Construct the YouTube Search URL
+        const youtubeUrl = `https://www.youtube.com/results?search_query=${encodedQuery}`;
+
+        // Directly open the results in a new tab
+        console.log(`🎵 Opening YouTube search for: ${query}`);
+        window.open(youtubeUrl, '_blank');
     }
 
     /**
