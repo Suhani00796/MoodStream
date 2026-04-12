@@ -48,53 +48,53 @@ Most chatbots send your data to remote servers. **Mood Bot runs 100% offline in 
 
 ```
 1. First Visit
-   ├─ Browser downloads HTML/CSS/JS from GitHub Pages
-   ├─ model.js fetches DistilBERT model from Hugging Face CDN
-   └─ Browser caches model in IndexedDB (~200MB)
+   ├─ Browser downloads HTML/CSS/JS from GitHub Pages
+   ├─ model.js fetches DistilBERT model from Hugging Face CDN
+   └─ Browser caches model in IndexedDB (~200MB)
 
 2. User Input
-   ├─ \"I'm feeling really happy today!\"
-   └─ Text stays in browser memory
+   ├─ \"I'm feeling really happy today!\"
+   └─ Text stays in browser memory
 
 3. Local Inference
-   ├─ DistilBERT processes text using WebAssembly/WebGPU
-   ├─ Detects emotion: \"joy\" (95.4% confidence)
-   └─ No network request needed!
+   ├─ DistilBERT processes text using WebAssembly/WebGPU
+   ├─ Detects emotion: \"joy\" (95.4% confidence)
+   └─ No network request needed!
 
 4. Response
-   ├─ model.js maps \"joy\" → Bollywood Dance playlist
-   └─ app.js displays response + Spotify link
+   ├─ model.js maps \"joy\" → Bollywood Dance playlist
+   └─ app.js displays response + Spotify link
 ```
 
 ### Architecture Diagram
 
 ```
 ┌─────────────────────────────────────────┐
-│         User's Browser (Client)         │
+│         User's Browser (Client)         │
 ├─────────────────────────────────────────┤
-│                                         │
-│  ┌─────────────┐      ┌──────────────┐ │
-│  │   app.js    │◄────►│  model.js    │ │
-│  │ (Controller)│      │ (ML Logic)   │ │
-│  └──────┬──────┘      └──────┬───────┘ │
-│         │                    │         │
-│         ▼                    ▼         │
-│  ┌─────────────┐      ┌──────────────┐ │
-│  │   DOM/UI    │      │ Transformers │ │
-│  │ (index.html)│      │   .js (CDN)  │ │
-│  └─────────────┘      └──────┬───────┘ │
-│                              │         │
-│                              ▼         │
-│                       ┌──────────────┐ │
-│                       │  DistilBERT  │ │
-│                       │    Model     │ │
-│                       │ (Cached)     │ │
-│                       └──────────────┘ │
+│                                         │
+│  ┌─────────────┐      ┌──────────────┐ │
+│  │   app.js    │◄────►│  model.js    │ │
+│  │ (Controller)│      │ (ML Logic)   │ │
+│  └──────┬──────┘      └──────┬───────┘ │
+│         │                    │         │
+│         ▼                    ▼         │
+│  ┌─────────────┐      ┌──────────────┐ │
+│  │   DOM/UI    │      │ Transformers │ │
+│  │ (index.html)│      │   .js (CDN)  │ │
+│  └─────────────┘      └──────┬───────┘ │
+│                              │         │
+│                              ▼         │
+│                       ┌──────────────┐ │
+│                       │  DistilBERT  │ │
+│                       │    Model     │ │
+│                       │ (Cached)     │ │
+│                       └──────────────┘ │
 └─────────────────────────────────────────┘
-         ▲
-         │ (Offline after first load)
-         ▼
-    IndexedDB Cache
+         ▲
+         │ (Offline after first load)
+         ▼
+    IndexedDB Cache
 ```
 
 ---
@@ -104,12 +104,12 @@ Most chatbots send your data to remote servers. **Mood Bot runs 100% offline in 
 ```
 mood-bot-project/
 │
-├── index.html          # Main UI structure + chat interface
-├── style.css           # Spotify-inspired dark theme
-├── app.js              # Controller logic (handles user input, UI updates)
-├── model.js            # ML logic (loads model, runs inference, maps playlists)
-├── assets/             # Optional: icons, images
-└── README.md           # You're here!
+├── index.html          # Main UI structure + chat interface
+├── style.css           # Spotify-inspired dark theme
+├── app.js              # Controller logic (handles user input, UI updates)
+├── model.js            # ML logic (loads model, runs inference, maps playlists)
+├── assets/             # Optional: icons, images
+└── README.md           # You're here!
 ```
 
 ---
@@ -118,14 +118,14 @@ mood-bot-project/
 
 ### Option 1: Direct File Opening (Simple)
 1. Clone this repository:
-   ```bash
-   git clone https://github.com/yourusername/mood-bot-project.git
-   cd mood-bot-project
-   ```
+   ```bash
+   git clone https://github.com/yourusername/mood-bot-project.git
+   cd mood-bot-project
+   ```
 
 2. Open `index.html` in your browser:
-   - **Chrome/Edge**: Just double-click `index.html`
-   - **Firefox**: Right-click → \"Open With\" → Firefox
+   - **Chrome/Edge**: Just double-click `index.html`
+   - **Firefox**: Right-click → \"Open With\" → Firefox
 
 3. Wait for the model to download (~200MB, one-time)
 
@@ -160,12 +160,12 @@ Edit `model.js` → `playlistMap` object:
 
 ```javascript
 this.playlistMap = {
-    'joy': {
-        name: 'Your Custom Playlist Name',
-        url: 'https://open.spotify.com/playlist/YOUR_PLAYLIST_ID',
-        description: 'Your description'
-    },
-    // ... add more emotions
+    'joy': {
+        name: 'Your Custom Playlist Name',
+        url: 'https://open.spotify.com/playlist/YOUR_PLAYLIST_ID',
+        description: 'Your description'
+    },
+    // ... add more emotions
 };
 ```
 
@@ -174,9 +174,9 @@ Edit `style.css` → `:root` variables:
 
 ```css
 :root {
-    --spotify-green: #1DB954;  /* Change accent color */
-    --bg-primary: #000000;     /* Change background */
-    /* ... modify other variables */
+    --spotify-green: #1DB954;  /* Change accent color */
+    --bg-primary: #000000;     /* Change background */
+    /* ... modify other variables */
 }
 ```
 
@@ -186,8 +186,8 @@ Edit `model.js` → `loadModel()` function:
 ```javascript
 // Replace with any Hugging Face text-classification model
 this.classifier = await pipeline(
-    'text-classification',
-    'YOUR-MODEL-NAME-HERE'  // e.g., 'distilbert-base-uncased-finetuned-sst-2-english'
+    'text-classification',
+    'YOUR-MODEL-NAME-HERE'  // e.g., 'distilbert-base-uncased-finetuned-sst-2-english'
 );
 ```
 
@@ -291,7 +291,7 @@ MIT License - feel free to use this for your hackathon, portfolio, or commercial
 
 ## 👨‍💻 Author
 
-**Your Name**  
+**Your Name**  
 - GitHub: [@yourusername](https://github.com/yourusername)
 - LinkedIn: [Your LinkedIn](https://linkedin.com/in/yourprofile)
 - Portfolio: [yourwebsite.com](https://yourwebsite.com)
