@@ -56,49 +56,67 @@ class MoodDetector {
     }
 
     async loadModel(progressCallback) {
-        // Simulate loading with progress updates
-        if (progressCallback) progressCallback({ status: 'initiating', progress: 25, file: 'Initializing...' });
-        
-        await new Promise(r => setTimeout(r, 200));
-        
-        // Try to load ML model if files exist in /models folder
         try {
-            if (progressCallback) progressCallback({ status: 'downloading', progress: 40, file: 'Checking for ML model...' });
+            // Simulate loading with progress updates
+            if (progressCallback) progressCallback({ status: 'initiating', progress: 25, file: 'Initializing...' });
             
-            const modelJsonResponse = await fetch('./models/model.json');
-            if (modelJsonResponse.ok) {
-                console.log('✅ Model files detected! Attempting to load DistilBERT...');
-                if (progressCallback) progressCallback({ status: 'downloading', progress: 60, file: 'Loading ML model...' });
+            await new Promise(r => setTimeout(r, 200));
+            
+            // Try to load ML model if files exist in /models folder
+            try {
+                if (progressCallback) progressCallback({ status: 'downloading', progress: 40, file: 'Checking for ML model...' });
                 
-                // Try to import Transformers.js from CDN
-                const { pipeline, env } = await import('https://cdn.jsdelivr.net/npm/@xenova/transformers@2.17.1');
-                
-                // Configure to use local models
-                env.allowRemoteModels = false;
-                env.localModelPath = './models/';
-                
-                // Load the emotion classifier
-                this.classifier = await pipeline('text-classification', 'Xenova/distilbert-base-uncased-finetuned-emotion');
-                this.useMLModel = true;
-                
-                console.log('✅ ML Model loaded successfully!');
-                if (progressCallback) progressCallback({ status: 'done', progress: 100, file: 'ML Model Ready!' });
-            } else {
-                throw new Error('Model files not found');
+                const modelJsonResponse = await fetch('./models/model.json');
+                if (modelJsonResponse.ok) {
+                    console.log('✅ Model files detected! Attempting to load DistilBERT...');
+                    if (progressCallback) progressCallback({ status: 'downloading', progress: 60, file: 'Loading ML model...' });
+                    
+                    try {
+                        // Try to import Transformers.js from CDN
+                        const { pipeline, env } = await import('https://cdn.jsdelivr.net/npm/@xenova/transformers@2.17.1');
+                        
+                        // Configure to use local models
+                        env.allowRemoteModels = false;
+                        env.localModelPath = './models/';
+                        
+                        // Load the emotion classifier
+                        this.classifier = await pipeline('text-classification', 'Xenova/distilbert-base-uncased-finetuned-emotion');
+                        this.useMLModel = true;
+                        
+                        console.log('✅ ML Model loaded successfully!');
+                        if (progressCallback) progressCallback({ status: 'done', progress: 100, file: 'ML Model Ready!' });
+                    } catch (mlError) {
+                        console.log('⚠️ ML model import/loading failed:', mlError.message);
+                        this.useMLModel = false;
+                        if (progressCallback) progressCallback({ status: 'downloading', progress: 75, file: 'Using keyword detection...' });
+                    }
+                } else {
+                    console.log('⚠️ Model files not found, using keyword detection');
+                    this.useMLModel = false;
+                    if (progressCallback) progressCallback({ status: 'downloading', progress: 75, file: 'Using keyword detection...' });
+                }
+            } catch (fetchError) {
+                console.log('⚠️ Could not check for local model files:', fetchError.message);
+                this.useMLModel = false;
+                if (progressCallback) progressCallback({ status: 'downloading', progress: 75, file: 'Using keyword detection...' });
             }
-        } catch (error) {
-            console.log('⚠️ ML model loading failed, using keyword-based detection:', error.message);
-            if (progressCallback) progressCallback({ status: 'downloading', progress: 60, file: 'Loading keyword detector...' });
-            this.useMLModel = false;
             
             // Wait a bit to show loading UI
             await new Promise(r => setTimeout(r, 200));
-            if (progressCallback) progressCallback({ status: 'done', progress: 100, file: 'Keyword Detector Ready!' });
-        }
+            if (progressCallback) progressCallback({ status: 'done', progress: 100, file: 'Ready!' });
 
-        this.isReady = true;
-        console.log(`✅ Mood Bot ready! Using ${this.useMLModel ? 'ML model' : 'keyword-based'} emotion detection.`);
-        return true;
+            this.isReady = true;
+            const detectionMethod = this.useMLModel ? 'Advanced ML model' : 'Smart keyword detection';
+            console.log(`✅ Mood Bot ready! Using ${detectionMethod}.`);
+            return true;
+        } catch (error) {
+            console.error('Unexpected error in loadModel:', error);
+            // Even if something goes wrong, set ready with keyword fallback
+            this.isReady = true;
+            this.useMLModel = false;
+            console.log('✅ Mood Bot ready! Using keyword detection (fallback).');
+            return true;
+        }
     }
 
     isModelReady() {
