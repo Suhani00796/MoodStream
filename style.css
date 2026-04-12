@@ -42,6 +42,145 @@ body {
     position: relative;
 }
 
+/* ========================================
+   WHATSAPP-STYLE LOGIN SCREEN
+   ======================================== */
+#login-screen {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(135deg, #000000 0%, #1DB954 100%);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 9999;
+    transition: opacity 0.6s ease;
+}
+
+#login-screen.fade-out {
+    opacity: 0;
+    pointer-events: none;
+}
+
+.login-box {
+    background: var(--bg-secondary);
+    border-radius: 20px;
+    padding: 40px;
+    width: 90%;
+    max-width: 400px;
+    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.8);
+    border: 1px solid var(--border-color);
+    animation: slideUp 0.6s ease;
+}
+
+@keyframes slideUp {
+    from {
+        transform: translateY(50px);
+        opacity: 0;
+    }
+    to {
+        transform: translateY(0);
+        opacity: 1;
+    }
+}
+
+.login-header {
+    text-align: center;
+    margin-bottom: 30px;
+}
+
+.login-header h2 {
+    font-family: var(--font-heading);
+    font-size: 28px;
+    color: var(--spotify-green);
+    margin-bottom: 8px;
+}
+
+.login-header p {
+    color: var(--text-secondary);
+    font-size: 14px;
+}
+
+#login-form {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+}
+
+.form-group {
+    display: flex;
+    flex-direction: column;
+}
+
+.form-group label {
+    font-size: 12px;
+    color: var(--text-secondary);
+    margin-bottom: 8px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.form-group input {
+    background: var(--bg-tertiary);
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    padding: 12px 16px;
+    color: var(--text-primary);
+    font-size: 16px;
+    transition: all 0.3s ease;
+}
+
+.form-group input:focus {
+    outline: none;
+    border-color: var(--spotify-green);
+    box-shadow: 0 0 10px rgba(29, 185, 84, 0.3);
+}
+
+.login-btn {
+    background: var(--spotify-green);
+    color: #000;
+    border: none;
+    border-radius: 8px;
+    padding: 14px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    margin-top: 8px;
+}
+
+.login-btn:hover {
+    background: var(--spotify-green-light);
+    transform: scale(1.02);
+}
+
+.login-btn:active {
+    transform: scale(0.98);
+}
+
+.login-btn:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+}
+
+#otp-section {
+    margin-top: 16px;
+    padding-top: 16px;
+    border-top: 1px solid var(--border-color);
+}
+
+#otp-section.hidden {
+    display: none;
+}
+
+.login-disclaimer {
+    text-align: center;
+    font-size: 12px;
+    color: var(--text-subdued);
+    margin-top: 20px;
+}
+
 /* Subtle animated background gradient */
 body::before {
     content: '';
@@ -469,6 +608,87 @@ body::before {
 @keyframes typingBounce {
     0%, 60%, 100% { transform: translateY(0); }
     30% { transform: translateY(-10px); }
+}
+
+/* ========================================
+   QUIZ OPTIONS & VIBE CARD
+   ======================================== */
+
+/* Quiz Options Container */
+.opt-container {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 10px;
+    margin-top: 12px;
+}
+
+.quiz-opt {
+    background: var(--bg-tertiary);
+    color: var(--text-primary);
+    border: 2px solid var(--border-color);
+    border-radius: 12px;
+    padding: 12px 16px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    font-family: var(--font-body);
+    font-size: 14px;
+    text-align: left;
+}
+
+.quiz-opt:hover {
+    background: var(--bg-elevated);
+    border-color: var(--spotify-green);
+    transform: translateX(4px);
+}
+
+.quiz-opt:active {
+    transform: translateX(2px);
+}
+
+/* Vibe Card */
+.vibe-card {
+    background: linear-gradient(135deg, var(--bg-elevated) 0%, var(--bg-tertiary) 100%);
+    border: 2px solid var(--spotify-green);
+    border-radius: 16px;
+    padding: 20px;
+    margin-top: 12px;
+    text-align: center;
+}
+
+.vibe-card p {
+    margin-bottom: 16px;
+    font-size: 15px;
+    color: var(--text-primary);
+}
+
+.vibe-card strong {
+    color: var(--spotify-green);
+    font-size: 18px;
+}
+
+.app-btn {
+    display: inline-block;
+    background: linear-gradient(135deg, var(--spotify-green) 0%, var(--spotify-green-light) 100%);
+    color: #000;
+    border: none;
+    border-radius: 12px;
+    padding: 12px 24px;
+    font-weight: 700;
+    font-size: 15px;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    box-shadow: 0 6px 20px rgba(29, 185, 84, 0.4);
+    font-family: var(--font-body);
+}
+
+.app-btn:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 8px 28px rgba(29, 185, 84, 0.6);
+}
+
+.app-btn:active {
+    transform: translateY(-1px);
 }
 
 /* ========================================

@@ -15,6 +15,32 @@
     <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@600;700;800&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
 </head>
 <body>
+    <!-- WhatsApp-Style Login Screen -->
+    <div id="login-screen" class="active">
+        <div class="login-box">
+            <div class="login-header">
+                <h2>🎵 MoodStream</h2>
+                <p>Vibe with Purpose</p>
+            </div>
+            <form id="login-form">
+                <div class="form-group">
+                    <label>Phone Number</label>
+                    <input type="tel" id="phone" placeholder="+91 00000-00000" autocomplete="off">
+                </div>
+                <button type="button" onclick="window.app && window.app.sendFakeOTP()" id="send-btn" class="login-btn">Get OTP</button>
+                
+                <div id="otp-section" class="hidden">
+                    <div class="form-group">
+                        <label>Enter OTP</label>
+                        <input type="text" id="otp-input" placeholder="0000" maxlength="4" autocomplete="off">
+                    </div>
+                    <button type="button" onclick="window.app && window.app.verifyOTP()" class="login-btn verify-btn">Verify & Start</button>
+                </div>
+            </form>
+            <p class="login-disclaimer">✨ No account needed. One-time verification.</p>
+        </div>
+    </div>
+
     <div id="setup-container" class="active">
         <div class="setup-content">
             <div class="logo-pulse">

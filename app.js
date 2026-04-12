@@ -21,14 +21,15 @@ class MoodBotApp {
         this.isProcessing = false;
         this.messageHistory = [];
 
-        // Question-based interaction tracking
-        this.moodQuestions = [
-            "How has your energy been today? (High/Low)",
-            "Are you in the mood for something upbeat or something soulful?",
-            "If your day was a movie genre, what would it be right now?",
-            "Pick a color that matches your vibe: Neon Green, Deep Blue, or Sunset Orange?",
-            "Finally, tell me one word that describes your current environment."
+        // New Quiz Structure with Multiple Choice
+        this.quiz = [
+            { q: "Current Energy Level?", options: ["🚀 High", "☁️ Mid", "🔋 Low"] },
+            { q: "Vibe Check?", options: ["🎸 Upbeat", "🎹 Soulful", "🎧 Lo-fi"] },
+            { q: "Focus Mode?", options: ["📚 Study", "🎮 Chill", "💃 Party"] },
+            { q: "Social Battery?", options: ["🔋 Full", "🪫 Drained", "🤝 Social"] },
+            { q: "Weather in your head?", options: ["☀️ Sunny", "🌧️ Rainy", "⚡ Stormy"] }
         ];
+        
         this.currentQuestionIndex = 0;
         this.userAnswers = [];
         this.inQuestionMode = false;
@@ -36,6 +37,9 @@ class MoodBotApp {
         // Bluetooth device state
         this.bluetoothDevice = null;
         this.gattServer = null;
+
+        // Make this instance globally available for HTML onclick handlers
+        window.app = this;
 
         // Initialize the app
         this.init();
@@ -241,39 +245,84 @@ class MoodBotApp {
     }
 
     /**
-     * Start the question-based interaction mode
+     * Start the question-based interaction mode with multiple choice
      */
     startQuestionMode() {
         this.inQuestionMode = true;
         this.currentQuestionIndex = 0;
         this.userAnswers = [];
-        
-        // Ask the first question
-        this.addBotMessage(this.moodQuestions[0]);
-        console.log('📝 Starting question mode - Question 1 of', this.moodQuestions.length);
+        this.askQuestion();
     }
 
     /**
-     * Handle user response to a question
+     * Display current question with multiple choice buttons
      */
-    handleQuestionResponse(answer) {
+    askQuestion() {
+        const data = this.quiz[this.currentQuestionIndex];
+        const buttons = data.options.map((opt, idx) => 
+            `<button class="quiz-opt" onclick="window.app.handleAnswer('${opt}')">` + opt + `</button>`
+        ).join("");
+        
+        const progressText = `Question ${this.currentQuestionIndex + 1} / ${this.quiz.length}`;
+        const messageDiv = document.createElement('div');
+        messageDiv.className = 'message bot-message';
+        messageDiv.setAttribute('data-testid', 'quiz-question');
+
+        messageDiv.innerHTML = `
+            <div class="message-avatar bot-avatar">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <circle cx="12" cy="12" r="10" fill="#1DB954"/>
+                    <path d="M8 14s1.5 2 4 2 4-2 4-2M9 9h.01M15 9h.01" stroke="#000" stroke-width="2" stroke-linecap="round"/>
+                </svg>
+            </div>
+            <div class="message-content">
+                <p><strong>${data.q}</strong></p>
+                <p style="font-size: 0.85em; color: #999; margin-bottom: 12px;">${progressText}</p>
+                <div class="opt-container">${buttons}</div>
+            </div>
+        `;
+
+        this.chatContainer.appendChild(messageDiv);
+        this.scrollToBottom();
+    }
+
+    /**
+     * Handle answer selection from quiz buttons
+     */
+    handleAnswer(answer) {
         // Store the answer
         this.userAnswers.push(answer);
-        console.log(`Answer ${this.currentQuestionIndex + 1}:`, answer);
+        console.log(`Answer ${this.currentQuestionIndex + 1}: ${answer}`);
+
+        // Add user response to chat
+        const userMsg = document.createElement('div');
+        userMsg.className = 'message user-message';
+        userMsg.innerHTML = `
+            <div class="message-avatar user-avatar">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <circle cx="12" cy="12" r="10" fill="#fff"/>
+                    <path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z" fill="#667eea"/>
+                </svg>
+            </div>
+            <div class="message-content">
+                <p>${answer}</p>
+            </div>
+        `;
+        this.chatContainer.appendChild(userMsg);
+        this.scrollToBottom();
 
         // Move to next question
         this.currentQuestionIndex++;
 
-        // Check if all questions answered
-        if (this.currentQuestionIndex < this.moodQuestions.length) {
-            // Ask next question
-            this.addBotMessage(this.moodQuestions[this.currentQuestionIndex]);
-            console.log(`📝 Question ${this.currentQuestionIndex + 1} of ${this.moodQuestions.length}`);
-        } else {
-            // All questions answered - process mood
-            this.inQuestionMode = false;
-            this.processFinalMood();
-        }
+        // Delay before next question for better UX
+        setTimeout(() => {
+            if (this.currentQuestionIndex < this.quiz.length) {
+                this.askQuestion();
+            } else {
+                this.inQuestionMode = false;
+                this.processFinalMood();
+            }
+        }, 600);
     }
 
     /**
@@ -310,62 +359,57 @@ class MoodBotApp {
     }
 
     /**
-     * Suggest YouTube music + secondary app based on all user answers
-     * Opens both YouTube and a mood-specific web app (e.g., VS Code, Wattpad, WhatsApp)
+     * Suggest YouTube music + display vibe card for secondary app
+     * Opens YouTube automatically, shows card for secondary app
      */
     suggestYouTubeMusic(mood, response) {
         let query = "";
         let secondaryAppUrl = "";
-        let secondaryAppMessage = "";
+        let secondaryAppName = "";
 
         const answersText = this.userAnswers.join(" ").toLowerCase();
         
         // Smart query generation + secondary app mapping based on user answers
-        if (answersText.includes("study") || (answersText.includes("low") && answersText.includes("productive"))) {
+        if (answersText.includes("📚") || answersText.includes("study")) {
             query = "lofi hip hop radio study beats";
             secondaryAppUrl = "https://vscode.dev";
-            secondaryAppMessage = "VS Code";
-        } else if (answersText.includes("low") || answersText.includes("deep blue")) {
-            query = "lofi hip hop radio beats to relax study";
+            secondaryAppName = "VS Code";
+        } else if (answersText.includes("🔋") || answersText.includes("low")) {
+            query = "lofi hip hop radio beats to relax";
             secondaryAppUrl = "https://www.youtube.com";
-            secondaryAppMessage = "YouTube";
-        } else if (answersText.includes("high") || answersText.includes("neon green")) {
+            secondaryAppName = "YouTube";
+        } else if (answersText.includes("🚀") || answersText.includes("high")) {
             query = "high energy bollywood dance hits 2026 non-stop";
             secondaryAppUrl = "https://www.wattpad.com";
-            secondaryAppMessage = "Wattpad (Main Character Energy!)";
-        } else if (answersText.includes("soulful") || answersText.includes("sad")) {
+            secondaryAppName = "Wattpad";
+        } else if (answersText.includes("🎹") || answersText.includes("soulful")) {
             query = "bollywood sad songs playlist emotional";
             secondaryAppUrl = "https://web.whatsapp.com";
-            secondaryAppMessage = "WhatsApp";
-        } else if (answersText.includes("upbeat") || answersText.includes("happy")) {
+            secondaryAppName = "WhatsApp";
+        } else if (answersText.includes("🎸") || answersText.includes("upbeat")) {
             query = "upbeat bollywood party mix 2026 non-stop";
             secondaryAppUrl = "https://www.wattpad.com";
-            secondaryAppMessage = "Wattpad";
-        } else if (answersText.includes("horror") || answersText.includes("thriller")) {
+            secondaryAppName = "Wattpad";
+        } else if (answersText.includes("💃") || answersText.includes("party")) {
+            query = "upbeat funky bollywood songs house remix 2026";
+            secondaryAppUrl = "https://www.amazon.in";
+            secondaryAppName = "Amazon";
+        } else if (answersText.includes("🤝") || answersText.includes("social")) {
+            query = "upbeat party music mix hindi english non-stop";
+            secondaryAppUrl = "https://web.whatsapp.com";
+            secondaryAppName = "WhatsApp";
+        } else if (answersText.includes("⚡") || answersText.includes("stormy")) {
             query = "intense dramatic music adrenaline rush";
             secondaryAppUrl = "https://www.amazon.in";
-            secondaryAppMessage = "Amazon";
-        } else if (answersText.includes("comedy")) {
-            query = "upbeat funky bollywood comedy songs mix";
-            secondaryAppUrl = "https://www.youtube.com";
-            secondaryAppMessage = "YouTube";
-        } else if (answersText.includes("romance") || answersText.includes("romantic")) {
-            query = "bollywood romantic mashup love songs 2026";
-            secondaryAppUrl = "https://www.wattpad.com";
-            secondaryAppMessage = "Wattpad";
-        } else if (answersText.includes("sunset orange")) {
-            query = "warm ambient sunset music relaxing vibes";
-            secondaryAppUrl = "https://www.amazon.in";
-            secondaryAppMessage = "Amazon";
-        } else if (answersText.includes("depressed") || answersText.includes("down")) {
-            query = "healing frequency 432hz relaxation";
-            secondaryAppUrl = "https://www.amazon.in";
-            secondaryAppMessage = "Amazon (Treat Yourself 🛍️)";
+            secondaryAppName = "Amazon";
+        } else if (answersText.includes("🌧️") || answersText.includes("rainy")) {
+            query = "sad emotional bollywood songs playlist";
+            secondaryAppUrl = "https://web.whatsapp.com";
+            secondaryAppName = "WhatsApp";
         } else {
-            // Default to mood-based query
             query = `${mood} music mix playlist hindi english`;
             secondaryAppUrl = "https://www.youtube.com";
-            secondaryAppMessage = "YouTube";
+            secondaryAppName = "YouTube";
         }
         
         // Encode and create YouTube URL
@@ -375,56 +419,43 @@ class MoodBotApp {
         console.log('🎵 YouTube query:', query);
         console.log('🌐 Secondary app:', secondaryAppUrl);
         
-        // Display final response with multi-app button
-        const messageDiv = document.createElement('div');
-        messageDiv.className = 'message bot-message';
-        messageDiv.setAttribute('data-testid', 'bot-message-with-playlist');
+        // First, open YouTube automatically
+        window.open(youtubeUrl, '_blank');
+        
+        // Then display the vibe card for secondary app
+        this.addBotMessage(response.message);
+        this.addBotMessage(response.playlistMessage + ` <em><strong>🎧 ${query}</strong></em>`);
+        
+        // Display vibe card with secondary app button
+        this.displayVibeCard(mood, secondaryAppUrl, secondaryAppName);
+    }
 
-        messageDiv.innerHTML = `
-            <div class=\"message-avatar bot-avatar\">
-                <svg width=\"24\" height=\"24\" viewBox=\"0 0 24 24\" fill=\"none\" xmlns=\"http://www.w3.org/2000/svg\">
-                    <circle cx=\"12\" cy=\"12\" r=\"10\" fill=\"#1DB954\"/>
-                    <path d=\"M8 14s1.5 2 4 2 4-2 4-2M9 9h.01M15 9h.01\" stroke=\"#000\" stroke-width=\"2\" stroke-linecap=\"round\"/>
+    /**
+     * Display Vibe Card with secondary app button
+     */
+    displayVibeCard(mood, appUrl, appName) {
+        const cardDiv = document.createElement('div');
+        cardDiv.className = 'message bot-message';
+        cardDiv.setAttribute('data-testid', 'vibe-card');
+
+        cardDiv.innerHTML = `
+            <div class="message-avatar bot-avatar">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <circle cx="12" cy="12" r="10" fill="#1DB954"/>
+                    <path d="M8 14s1.5 2 4 2 4-2 4-2M9 9h.01M15 9h.01" stroke="#000" stroke-width="2" stroke-linecap="round"/>
                 </svg>
             </div>
-            <div class=\"message-content\">
-                <p>${this.formatMessage(response.message)}</p>
-                <p>${response.playlistMessage}</p>
-                <p>
-                    <strong>🎧 Based on Your Vibe</strong><br>
-                    <em>Curated from your answers: ${query}</em>
-                </p>
-                <p style="font-size: 0.85em; color: #999; margin: 8px 0;">
-                    ⚠️ <em>Tip: Your browser may block pop-ups. Click "Allow" when prompted so both apps open together!</em>
-                </p>
-                <p>
-                    <button class=\"playlist-link\" data-testid=\"playlist-link\">
-                        🎵 Open Music + App
+            <div class="message-content">
+                <div class="vibe-card">
+                    <p>✨ Analysis Complete! You're in a <strong>${mood}</strong> vibe.</p>
+                    <button class="app-btn" onclick="window.open('${appUrl}', '_blank')">
+                        🌐 Launch ${appName}
                     </button>
-                </p>
+                </div>
             </div>
         `;
 
-        this.chatContainer.appendChild(messageDiv);
-        
-        // Add click handler to open both YouTube and secondary app
-        const playlistBtn = messageDiv.querySelector('.playlist-link');
-        if (playlistBtn) {
-            playlistBtn.addEventListener('click', () => {
-                console.log('🎵 Opening YouTube:', youtubeUrl);
-                // Open the YouTube music first
-                window.open(youtubeUrl, '_blank');
-                
-                // Open the secondary app with a slight delay (helps bypass pop-up blockers)
-                if (secondaryAppUrl) {
-                    setTimeout(() => {
-                        console.log('🌐 Opening secondary app:', secondaryAppUrl);
-                        window.open(secondaryAppUrl, '_blank');
-                    }, 500);
-                }
-            });
-        }
-
+        this.chatContainer.appendChild(cardDiv);
         this.scrollToBottom();
     }
 
@@ -716,6 +747,53 @@ class MoodBotApp {
                 console.error('Error disconnecting:', error);
             }
         }
+    }
+
+    /**
+     * WhatsApp-Style Login: Send Fake OTP
+     */
+    sendFakeOTP() {
+        const phone = document.getElementById('phone').value.trim();
+        if (phone.length < 10) {
+            alert('Enter a valid phone number');
+            return;
+        }
+
+        document.getElementById('send-btn').innerText = '✅ OTP Sent to WhatsApp!';
+        document.getElementById('send-btn').disabled = true;
+        document.getElementById('otp-section').classList.remove('hidden');
+        console.log('📱 Simulating OTP sent to:', phone);
+    }
+
+    /**
+     * WhatsApp-Style Login: Verify OTP and Start Quiz
+     */
+    verifyOTP() {
+        const otp = document.getElementById('otp-input').value.trim();
+        if (otp.length !== 4 || isNaN(otp)) {
+            alert('Enter a valid 4-digit OTP');
+            return;
+        }
+
+        // Hide login screen with fade animation
+        const loginScreen = document.getElementById('login-screen');
+        loginScreen.classList.add('fade-out');
+        
+        setTimeout(() => {
+            loginScreen.style.display = 'none';
+            
+            // Show setup and app containers
+            const setupContainer = document.getElementById('setup-container');
+            setupContainer.classList.remove('active');
+            
+            setTimeout(() => {
+                setupContainer.style.display = 'none';
+                document.getElementById('app-container').style.display = 'flex';
+                
+                // Start the quiz
+                this.startQuestionMode();
+            }, 500);
+        }, 600);
     }
 }
 
