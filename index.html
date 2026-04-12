@@ -5,13 +5,11 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Mood Bot - Offline ML Chatbot</title>
     <link rel="stylesheet" href="style.css">
-    <!-- Google Fonts - Spotify uses Circular, but we'll use Montserrat + Inter as web-safe alternatives -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@600;700;800&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
 </head>
 <body>
-    <!-- Model Loading Overlay -->
     <div id="setup-container" class="active">
         <div class="setup-content">
             <div class="logo-pulse">
@@ -35,9 +33,7 @@
         </div>
     </div>
 
-    <!-- Main Chat Interface -->
     <div id="app-container">
-        <!-- Header -->
         <header class="chat-header">
             <div class="header-content">
                 <div class="brand">
@@ -61,9 +57,7 @@
             </div>
         </header>
 
-        <!-- Chat Messages Container -->
         <div id="chat-container" class="chat-messages" data-testid="chat-container">
-            <!-- Welcome Message -->
             <div class="message bot-message" data-testid="welcome-message">
                 <div class="message-avatar bot-avatar">
                     <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -78,7 +72,6 @@
             </div>
         </div>
 
-        <!-- Input Area -->
         <div class="input-container">
             <div class="input-wrapper">
                 <input 
@@ -98,9 +91,23 @@
         </div>
     </div>
 
-    <!-- Scripts: Load Transformers.js from CDN, then our custom modules -->
     <script type="module" src="https://cdn.jsdelivr.net/npm/@xenova/transformers@2.17.1"></script>
     <script type="module" src="model.js"></script>
     <script type="module" src="app.js"></script>
+
+    <script>
+        // Register service worker for offline capability
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => {
+                navigator.serviceWorker.register('./service-worker.js')
+                    .then((registration) => {
+                        console.log('✅ Service Worker registered:', registration.scope);
+                    })
+                    .catch((error) => {
+                        console.log('❌ Service Worker registration failed:', error);
+                    });
+            });
+        }
+    </script>
 </body>
 </html>
