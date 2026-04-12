@@ -21,18 +21,29 @@ class MoodBotApp {
         this.isProcessing = false;
         this.messageHistory = [];
 
-        // New Quiz Structure with Multiple Choice
-        this.quiz = [
-            { q: "Current Energy Level?", options: ["🚀 High", "☁️ Mid", "🔋 Low"] },
-            { q: "Vibe Check?", options: ["🎸 Upbeat", "🎹 Soulful", "🎧 Lo-fi"] },
-            { q: "Focus Mode?", options: ["📚 Study", "🎮 Chill", "💃 Party"] },
-            { q: "Social Battery?", options: ["🔋 Full", "🪫 Drained", "🤝 Social"] },
-            { q: "Weather in your head?", options: ["☀️ Sunny", "🌧️ Rainy", "⚡ Stormy"] }
-        ];
+        // Leo Conversation State
+        this.conversationLog = "";
+        this.isChatting = true;
+        this.conversationTimer = null;
+        this.timerInterval = null;
+        this.timerDisplay = null;
+        this.timeRemaining = 90; // 1:30 minutes in seconds
         
-        this.currentQuestionIndex = 0;
-        this.userAnswers = [];
-        this.inQuestionMode = false;
+        // Leo conversation responses (Gen-Z vibes + Flirty)
+        this.leoResponses = [
+            "OMG tell me more, you're so interesting 👀",
+            "Tell me more, sweetie... I'm totally vibing with this 💫",
+            "Spill the tea! How did that make you feel? 🍵",
+            "Ooh this is juicy, keep talking! 😏",
+            "No way, that's so relatable! Tell me everything 💕",
+            "I hear you, bestie! I'm all ears 👂✨",
+            "Yeah? Period! What else happened? 💅",
+            "That hits different... I need to know MORE 🔥",
+            "You're giving main character energy! Keep going 🌟",
+            "Ayy I love this for you! Spill ☕",
+            "Not you keeping me on the edge of my seat! 😱",
+            "Okay but like... TELL ME MORE 😍"
+        ];
 
         // Bluetooth device state
         this.bluetoothDevice = null;
@@ -194,43 +205,14 @@ class MoodBotApp {
         const typingIndicator = this.addTypingIndicator();
 
         try {
-            // If in question mode, collect answers
-            if (this.inQuestionMode) {
+            // If still chatting with Leo, collect their message
+            if (this.isChatting) {
+                await this.delay(600);
                 typingIndicator.remove();
-                this.handleQuestionResponse(userMessage);
+                this.handleLeoChat(userMessage);
             } else {
-                // Simulate a short delay for better UX (optional)
-                await this.delay(800);
-
-                // Analyze the mood using the ML model
-                const moodResult = await moodDetector.getMood(userMessage);
-                console.log('Mood analysis result:', moodResult);
-
-                // Get formatted response
-                const response = moodDetector.getResponseMessage(moodResult);
-
-                // Remove typing indicator
                 typingIndicator.remove();
-
-                // Add bot response with the mood for YouTube search
-                this.addBotMessageWithPlaylist(
-                    response.message,
-                    response.playlistMessage,
-                    response.playlist,
-                    moodResult
-                );
-
-                // Save to history
-                this.messageHistory.push({
-                    type: 'user',
-                    content: userMessage,
-                    timestamp: Date.now()
-                });
-                this.messageHistory.push({
-                    type: 'bot',
-                    content: response,
-                    timestamp: Date.now()
-                });
+                this.addBotMessage('❌ Chat session ended. Click "Clear Chat" to start a new conversation!');
             }
 
         } catch (error) {
@@ -245,117 +227,160 @@ class MoodBotApp {
     }
 
     /**
+     * Initialize Leo's conversation mode with 1:30 minute timer
+     */
+    initLeo() {
+        this.conversationLog = "";
+        this.isChatting = true;
+        this.timeRemaining = 90; // Reset to 90 seconds (1:30)
+        
+        this.addBotMessage("Hey gorgeous! 💕 Let's chat for a bit and I'll figure out what vibe you're channeling right now... You got 1️⃣:3️⃣0️⃣ minutes! Make it count! ✨");
+        console.log('🎤 Leo: Starting conversation (90-second timer)...');
+        
+        // Create and show timer display
+        this.setupTimerDisplay();
+        
+        // Start 90-second timer to wrap up conversation
+        this.conversationTimer = setTimeout(() => this.finishConversation(), 90000);
+        
+        // Start timer interval (updates every second)
+        this.startTimerDisplay();
+    }
+
+    /**
+     * Handle Leo's natural chat responses
+     */
+    handleLeoChat(userMessage) {
+        if (!this.isChatting) return;
+        
+        // Add to conversation log
+        this.conversationLog += " " + userMessage;
+        console.log('Conversation log:', this.conversationLog);
+        
+        // Leo responds naturally with varied responses
+        const responses = this.leoResponses;
+        const randomResp = responses[Math.floor(Math.random() * responses.length)];
+        this.addBotMessage(randomResp);
+        
+        // Add engaging follow-ups sometimes
+        if (Math.random() > 0.7) {
+            const followUps = [
+                "Don't hold back! 😉",
+                "This is so good... 👀",
+                "You're really opening up! 💖",
+                "The chemistry is real ✨"
+            ];
+            setTimeout(() => {
+                if (this.isChatting) {
+                    this.addBotMessage(followUps[Math.floor(Math.random() * followUps.length)]);
+                }
+            }, 1500);
+        }
+    }
+
+    /**
+     * Setup timer display element
+     */
+    setupTimerDisplay() {
+        const timerContainer = document.getElementById('timer-container');
+        if (timerContainer) {
+            timerContainer.style.display = 'flex';
+            timerContainer.innerHTML = '<div id="timer-display" style="font-size: 24px; font-weight: bold; color: #1DB954;">1:30</div>';
+            this.timerDisplay = document.getElementById('timer-display');
+        }
+    }
+    
+    /**
+     * Start updating timer display every second
+     */
+    startTimerDisplay() {
+        this.timerInterval = setInterval(() => {
+            this.timeRemaining--;
+            if (this.timerDisplay) {
+                const minutes = Math.floor(this.timeRemaining / 60);
+                const seconds = this.timeRemaining % 60;
+                this.timerDisplay.textContent = `${minutes}:${seconds < 10 ? '0' : ''}${seconds}`;
+                
+                // Change color as time runs out
+                if (this.timeRemaining <= 30) {
+                    this.timerDisplay.style.color = '#FF6B6B'; // Red
+                } else if (this.timeRemaining <= 60) {
+                    this.timerDisplay.style.color = '#FFD93D'; // Yellow
+                }
+            }
+            
+            if (this.timeRemaining <= 0) {
+                this.stopTimerDisplay();
+            }
+        }, 1000);
+    }
+    
+    /**
+     * Stop timer display
+     */
+    stopTimerDisplay() {
+        if (this.timerInterval) {
+            clearInterval(this.timerInterval);
+            this.timerInterval = null;
+        }
+        const timerContainer = document.getElementById('timer-container');
+        if (timerContainer) {
+            timerContainer.style.display = 'none';
+        }
+    }
+
+    /**
+     * Finish conversation and analyze mood
+     */
+    async finishConversation() {
+        this.stopTimerDisplay();
+        this.isChatting = false;
+        this.userInput.disabled = true;
+        this.sendBtn.disabled = true;
+        
+        this.addBotMessage("🔥 Time's up, babe! I've got your number now... Let me cook something SPECIAL for you based on your energy right now! ✨");
+        
+        try {
+            // Analyze the whole conversation
+            const detectedMood = await moodDetector.getMood(this.conversationLog);
+            console.log('🎯 Final mood detected:', detectedMood);
+            
+            // Render the Vibe Hub
+            await this.delay(800);
+            this.renderVibeHub(detectedMood);
+        } catch (error) {
+            console.error('Error analyzing conversation:', error);
+            this.addBotMessage('😅 Had a little hiccup analyzing your vibe. But here\'s something for you anyway!');
+            this.renderVibeHub('joy'); // Default fallback
+        }
+    }
+
+    /**
      * Start the question-based interaction mode with multiple choice
      */
     startQuestionMode() {
-        this.inQuestionMode = true;
-        this.currentQuestionIndex = 0;
-        this.userAnswers = [];
-        this.askQuestion();
+        // Placeholder - replaced by Leo flow
     }
 
     /**
      * Display current question with multiple choice buttons
      */
     askQuestion() {
-        const data = this.quiz[this.currentQuestionIndex];
-        const buttons = data.options.map((opt, idx) => 
-            `<button class="quiz-opt" onclick="window.app.handleAnswer('${opt}')">` + opt + `</button>`
-        ).join("");
-        
-        const progressText = `Question ${this.currentQuestionIndex + 1} / ${this.quiz.length}`;
-        const messageDiv = document.createElement('div');
-        messageDiv.className = 'message bot-message';
-        messageDiv.setAttribute('data-testid', 'quiz-question');
-
-        messageDiv.innerHTML = `
-            <div class="message-avatar bot-avatar">
-                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                    <circle cx="12" cy="12" r="10" fill="#1DB954"/>
-                    <path d="M8 14s1.5 2 4 2 4-2 4-2M9 9h.01M15 9h.01" stroke="#000" stroke-width="2" stroke-linecap="round"/>
-                </svg>
-            </div>
-            <div class="message-content">
-                <p><strong>${data.q}</strong></p>
-                <p style="font-size: 0.85em; color: #999; margin-bottom: 12px;">${progressText}</p>
-                <div class="opt-container">${buttons}</div>
-            </div>
-        `;
-
-        this.chatContainer.appendChild(messageDiv);
-        this.scrollToBottom();
+        // Placeholder - replaced by Leo flow
     }
 
     /**
      * Handle answer selection from quiz buttons
      */
     handleAnswer(answer) {
-        // Store the answer
-        this.userAnswers.push(answer);
-        console.log(`Answer ${this.currentQuestionIndex + 1}: ${answer}`);
-
-        // Add user response to chat
-        const userMsg = document.createElement('div');
-        userMsg.className = 'message user-message';
-        userMsg.innerHTML = `
-            <div class="message-avatar user-avatar">
-                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                    <circle cx="12" cy="12" r="10" fill="#fff"/>
-                    <path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z" fill="#667eea"/>
-                </svg>
-            </div>
-            <div class="message-content">
-                <p>${answer}</p>
-            </div>
-        `;
-        this.chatContainer.appendChild(userMsg);
-        this.scrollToBottom();
-
-        // Move to next question
-        this.currentQuestionIndex++;
-
-        // Delay before next question for better UX
-        setTimeout(() => {
-            if (this.currentQuestionIndex < this.quiz.length) {
-                this.askQuestion();
-            } else {
-                this.inQuestionMode = false;
-                this.processFinalMood();
-            }
-        }, 600);
+        // Placeholder - replaced by Leo flow
     }
 
     /**
      * Process final mood after all questions are answered
      */
     async processFinalMood() {
-        console.log('🎯 Processing final mood analysis...');
-        console.log('User answers:', this.userAnswers);
-
-        // Show thinking message
-        this.addBotMessage('Got it! Analyzing your vibe... 🎧');
-        
-        try {
-            // Combine all answers into context for the mood detector
-            const fullContext = this.userAnswers.join(" ");
-            
-            // Analyze mood with full context
-            const detectedMood = await moodDetector.getMood(fullContext);
-            console.log('Detected mood:', detectedMood);
-            
-            // Get mood-specific response
-            const response = moodDetector.getResponseMessage(detectedMood);
-            
-            // Make smart YouTube suggestion based on all answers
-            this.suggestYouTubeMusic(detectedMood, response);
-            
-            // Reset for next conversation
-            this.currentQuestionIndex = 0;
-            this.userAnswers = [];
-        } catch (error) {
-            console.error('Error in final mood processing:', error);
-            this.addBotMessage('😅 Let me try that again...');
-        }
+        // Placeholder - replaced by Leo flow
     }
 
     /**
@@ -466,6 +491,7 @@ class MoodBotApp {
         const messageDiv = document.createElement('div');
         messageDiv.className = 'message user-message';
         messageDiv.setAttribute('data-testid', 'user-message');
+        messageDiv.style.animation = 'slideInMessage 0.3s ease';
 
         messageDiv.innerHTML = `
             <div class=\"message-avatar user-avatar\">
@@ -490,6 +516,7 @@ class MoodBotApp {
         const messageDiv = document.createElement('div');
         messageDiv.className = 'message bot-message';
         messageDiv.setAttribute('data-testid', 'bot-message');
+        messageDiv.style.animation = 'slideInMessage 0.3s ease';
 
         messageDiv.innerHTML = `
             <div class=\"message-avatar bot-avatar\">
@@ -585,20 +612,35 @@ class MoodBotApp {
     handleClearChat() {
         // Confirm before clearing
         if (this.messageHistory.length > 0) {
-            const confirmed = confirm('Are you sure you want to clear the chat history?');
+            const confirmed = confirm('Ready for round 2? Let\'s start fresh! 🔄');
             if (!confirmed) {
                 return;
             }
         }
 
+        // Stop any running timer
+        if (this.timerInterval) {
+            clearInterval(this.timerInterval);
+            this.timerInterval = null;
+        }
+        if (this.conversationTimer) {
+            clearTimeout(this.conversationTimer);
+            this.conversationTimer = null;
+        }
+        
         // Remove all messages except the welcome message
-        const messages = this.chatContainer.querySelectorAll('.message:not([data-testid=\"welcome-message\"])');
+        const messages = this.chatContainer.querySelectorAll('.message:not([data-testid="welcome-message"])');
         messages.forEach(msg => msg.remove());
 
         // Clear history and reset to question mode
         this.messageHistory = [];
         this.userAnswers = [];
         this.currentQuestionIndex = 0;
+        this.isChatting = true;
+        
+        // Re-enable input
+        this.userInput.disabled = false;
+        this.sendBtn.disabled = false;
         
         // Restart question mode
         this.startQuestionMode();
