@@ -11,6 +11,7 @@ const STATIC_ASSETS = [
     '/app.js',
     '/model.js',
     '/manifest.json',
+    '/icon.png',
     'https://fonts.googleapis.com/css2?family=Montserrat:wght@600;700;800&family=Inter:wght@300;400;500;600&display=swap'
 ];
 
