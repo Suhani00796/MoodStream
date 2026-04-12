@@ -1,199 +1,163 @@
 /* ========================================
-   MODEL.JS - Offline ML Logic with Transformers.js
-   Handles model loading, emotion detection, and playlist mapping
+   MODEL.JS - Hybrid Emotion Detection
+   Tries ML model first, falls back to keywords
+   Works 100% offline - No external dependencies required
    ======================================== */
-
-import { pipeline, env } from 'https://cdn.jsdelivr.net/npm/@xenova/transformers@2.17.1';
-
-// Verify that transformers library loaded successfully
-console.log('✅ Transformers.js library imported successfully');
-console.log('Available functions:', { pipeline: typeof pipeline, env: typeof env });
-
-// Configure Transformers.js environment
-env.allowLocalModels = false; 
-env.allowRemoteModels = true; 
-env.allowProxy = true;
-console.log('✅ Transformers.js environment configured');
 
 class MoodDetector {
     constructor() {
-        this.classifier = null;
-        this.isLoading = false;
         this.isReady = false;
+        this.useMLModel = false;
+        this.classifier = null;
         
-        // Spotify Playlist Mapping (Bollywood + Global Mix)
-        // Replace these with your actual Spotify playlist URLs
-        this.playlistMap = {
-            'joy': {
-                name: 'Bollywood Dance & Uplifting',
-                url: 'https://open.spotify.com/playlist/37i9dQZF1DX0XUfTFmNBRM', // Feel Good Bollywood
-                description: 'High-energy Bollywood beats and uplifting global hits!'
+        // Emotion Keywords for fallback detection
+        this.emotionKeywords = {
+            joy: ['happy', 'great', 'awesome', 'love', 'excited', 'wonderful', 'brilliant', 'fantastic', 'amazing', 'blessed', 'celebrate', 'joy', 'smile', 'laugh'],
+            sadness: ['sad', 'down', 'cry', 'depressed', 'upset', 'unhappy', 'miserable', 'gloomy', 'dark', 'lonely', 'broken', 'hurt', 'pain'],
+            anger: ['angry', 'furious', 'hate', 'enraged', 'mad', 'irritated', 'frustrated', 'pissed', 'rage', 'annoyed', 'furious', 'angry'],
+            fear: ['afraid', 'scared', 'worried', 'anxious', 'nervous', 'terrified', 'panic', 'dread', 'frightened', 'fear'],
+            love: ['love', 'adore', 'care', 'affection', 'sweet', 'romantic', 'passion', 'devoted', 'cherish', 'beautiful', 'heart'],
+            surprise: ['wow', 'amazing', 'shocked', 'surprised', 'unexpected', 'astonished', 'incredible', 'unbelievable']
+        };
+        
+        // Playlist Mapping
+        this.playlists = {
+            joy: {
+                name: "Happy & Energetic",
+                description: "Upbeat Bollywood & Global hits to keep the vibe high!",
+                url: "https://open.spotify.com/playlist/37i9dQZF1DXdPecmS3tq9S"
             },
-            'sadness': {
-                name: 'Bollywood Heartbreak & Melancholy',
-                url: 'https://open.spotify.com/playlist/37i9dQZF1DX7gIoKXt0gmx', // Heartbreak Bollywood
-                description: 'Soulful melodies and emotional Hindi tracks for the feels.'
+            sadness: {
+                name: "Soulful & Calming",
+                description: "Melodious tracks to accompany your quiet moments.",
+                url: "https://open.spotify.com/playlist/37i9dQZF1DX7qKkEvmtpKy"
             },
-            'love': {
-                name: 'Bollywood Romantic Melodies',
-                url: 'https://open.spotify.com/playlist/37i9dQZF1DX50KNjGOd2Tt', // Romantic Bollywood
-                description: 'Classic and modern romantic Hindi songs for your heart. 💕'
+            anger: {
+                name: "Stress Buster",
+                description: "High-energy beats to help you vent and reset.",
+                url: "https://open.spotify.com/playlist/37i9dQZF1DX3rxVfibe1L0"
             },
-            'anger': {
-                name: 'High-Intensity Hindi Rap & Rock',
-                url: 'https://open.spotify.com/playlist/37i9dQZF1DX1uG1rxWFRDH', // Angry Rap/Rock
-                description: 'Channel that energy with aggressive Hindi rap and rock!'
+            fear: {
+                name: "Peaceful Retreat",
+                description: "Calm instrumentals and soothing vocals to relax.",
+                url: "https://open.spotify.com/playlist/37i9dQZF1DX4sWvAiT0O9z"
             },
-            'fear': {
-                name: 'Soothing Chilled Hindi Indie',
-                url: 'https://open.spotify.com/playlist/37i9dQZF1DX0XUfTFmNBRM', // Chill Hindi Indie
-                description: 'Calm your mind with soothing Hindi indie and acoustic tracks.'
+            surprise: {
+                name: "New Discoveries",
+                description: "Fresh tracks and unexpected hits from around the world.",
+                url: "https://open.spotify.com/playlist/37i9dQZF1DX4WQwS6mMGq0"
             },
-            'surprise': {
-                name: 'Trending Vibrant Mix',
-                url: 'https://open.spotify.com/playlist/37i9dQZF1DXcBWIGoYBM5M', // Today's Top Hits
-                description: 'Trending global and Hindi tracks that will keep you guessing!'
+            love: {
+                name: "Romantic Melodies",
+                description: "The best of Bollywood and Global love songs.",
+                url: "https://open.spotify.com/playlist/37i9dQZF1DX7r9R7clS1Xy"
             }
         };
     }
 
-    /**
-     * Initialize and load the emotion detection model
-     * @param {Function} progressCallback - Callback function to report loading progress
-     */
     async loadModel(progressCallback) {
-        this.isLoading = true;
-        this.classifier = null; // Force fallback mode
-
-        // Rapid fire the progress updates
-        if (progressCallback) progressCallback({ status: 'initiating', progress: 25, file: 'Starting...' });
+        // Simulate loading with progress updates
+        if (progressCallback) progressCallback({ status: 'initiating', progress: 25, file: 'Initializing...' });
         
-        await new Promise(r => setTimeout(r, 300));
+        await new Promise(r => setTimeout(r, 200));
         
-        if (progressCallback) progressCallback({ status: 'downloading', progress: 60, file: 'Loading...' });
-        
-        await new Promise(r => setTimeout(r, 300));
-        
-        if (progressCallback) progressCallback({ status: 'done', progress: 100, file: 'Ready!' });
+        // Try to load ML model if files exist in /models folder
+        try {
+            if (progressCallback) progressCallback({ status: 'downloading', progress: 40, file: 'Checking for ML model...' });
+            
+            const modelJsonResponse = await fetch('./models/model.json');
+            if (modelJsonResponse.ok) {
+                console.log('✅ Model files detected! Attempting to load DistilBERT...');
+                if (progressCallback) progressCallback({ status: 'downloading', progress: 60, file: 'Loading ML model...' });
+                
+                // Try to import Transformers.js from CDN
+                const { pipeline, env } = await import('https://cdn.jsdelivr.net/npm/@xenova/transformers@2.17.1');
+                
+                // Configure to use local models
+                env.allowRemoteModels = false;
+                env.localModelPath = './models/';
+                
+                // Load the emotion classifier
+                this.classifier = await pipeline('text-classification', 'Xenova/distilbert-base-uncased-finetuned-emotion');
+                this.useMLModel = true;
+                
+                console.log('✅ ML Model loaded successfully!');
+                if (progressCallback) progressCallback({ status: 'done', progress: 100, file: 'ML Model Ready!' });
+            } else {
+                throw new Error('Model files not found');
+            }
+        } catch (error) {
+            console.log('⚠️ ML model loading failed, using keyword-based detection:', error.message);
+            if (progressCallback) progressCallback({ status: 'downloading', progress: 60, file: 'Loading keyword detector...' });
+            this.useMLModel = false;
+            
+            // Wait a bit to show loading UI
+            await new Promise(r => setTimeout(r, 200));
+            if (progressCallback) progressCallback({ status: 'done', progress: 100, file: 'Keyword Detector Ready!' });
+        }
 
         this.isReady = true;
-        this.isLoading = false;
-        
-        console.log('✅ Mood Bot ready! Using keyword-based emotion detection.');
+        console.log(`✅ Mood Bot ready! Using ${this.useMLModel ? 'ML model' : 'keyword-based'} emotion detection.`);
         return true;
     }
 
-    /**
-     * Analyze text and detect the dominant emotion
-     * @param {string} text - User's input text
-     * @returns {Object} - Emotion label, confidence score, and playlist info
-     */
-    async getMood(text) {
-        if (!this.isReady) {
-            throw new Error('Model is not loaded yet. Please wait for initialization.');
-        }
-
-        if (!text || text.trim().length === 0) {
-            throw new Error('Please provide some text to analyze.');
-        }
-
-        try {
-            console.log('Analyzing text:', text);
-            
-            const lowerText = text.toLowerCase();
-            let emotionLabel = 'surprise';
-            let confidence = 70 + Math.random() * 25; // 70-95% confidence
-            
-            // Keyword matching for emotion detection
-            const emotionKeywords = {
-                'joy': ['happy', 'great', 'awesome', 'love', 'excited', 'wonderful', 'brilliant', 'fantastic', 'amazing', 'blessed', 'celebrate'],
-                'sadness': ['sad', 'down', 'cry', 'depressed', 'upset', 'unhappy', 'miserable', 'gloomy', 'dark', 'lonely', 'broken'],
-                'anger': ['angry', 'furious', 'hate', 'enraged', 'mad', 'irritated', 'frustrated', 'pissed', 'rage', 'annoyed'],
-                'fear': ['afraid', 'scared', 'worried', 'anxious', 'nervous', 'terrified', 'panic', 'dread', 'frightened'],
-                'love': ['love', 'adore', 'care', 'affection', 'sweet', 'romantic', 'passion', 'devoted', 'cherish'],
-                'surprise': ['wow', 'amazing', 'shocked', 'surprised', 'unexpected', 'astonished', 'wow', 'incredible']
-            };
-            
-            // Check for emotion keywords
-            for (const [emotion, keywords] of Object.entries(emotionKeywords)) {
-                if (keywords.some(kw => lowerText.includes(kw))) {
-                    emotionLabel = emotion;
-                    break;
-                }
-            }
-
-            confidence = confidence.toFixed(1);
-            console.log('Detected emotion:', emotionLabel, 'with confidence:', confidence + '%');
-
-            // Get the corresponding playlist
-            const playlist = this.playlistMap[emotionLabel] || this.playlistMap['surprise'];
-
-            return {
-                emotion: emotionLabel,
-                confidence: confidence,
-                playlist: playlist,
-                rawResult: null
-            };
-        } catch (error) {
-            console.error('Error during emotion detection:', error);
-            throw new Error(`Failed to analyze mood: ${error.message}`);
-        }
-    }
-
-    /**
-     * Get a formatted response message for the detected emotion
-     * @param {Object} moodResult - Result from getMood()
-     * @returns {string} - Formatted bot response
-     */
-    getResponseMessage(moodResult) {
-        const { emotion, confidence, playlist } = moodResult;
-
-        // Emotion-specific response templates
-        const responseTemplates = {
-            'joy': [
-                `I sense some **joy** in your words! (${confidence}% confident)`,
-                `That positive energy is contagious! Let's keep it going. 🎉`
-            ],
-            'sadness': [
-                `I sense some **sadness** in your words. (${confidence}% confident)`,
-                `It's okay to feel this way. Music can be a gentle companion. 💙`
-            ],
-            'love': [
-                `I sense some **love** in your words! (${confidence}% confident)`,
-                `Those heart-fluttering feelings deserve the perfect soundtrack. 💕`
-            ],
-            'anger': [
-                `I sense some **anger** in your words. (${confidence}% confident)`,
-                `Let's channel that intensity into some powerful beats. 🔥`
-            ],
-            'fear': [
-                `I sense some **fear/anxiety** in your words. (${confidence}% confident)`,
-                `Take a deep breath. Here's something to calm your mind. 🌊`
-            ],
-            'surprise': [
-                `I sense some **surprise** in your words! (${confidence}% confident)`,
-                `Life's full of unexpected moments! Let's match that energy. ✨`
-            ]
-        };
-
-        const messages = responseTemplates[emotion] || responseTemplates['surprise'];
-
-        return {
-            message: messages.join('\n\n'),
-            playlistMessage: `Here's a mix of Global and Hindi tracks to match your vibe:`,
-            playlist: playlist
-        };
-    }
-
-    /**
-     * Check if the model is ready for inference
-     * @returns {boolean}
-     */
     isModelReady() {
         return this.isReady;
     }
+
+    async getMood(text) {
+        if (!this.isReady) throw new Error("Model not loaded");
+        if (!text || text.trim().length === 0) throw new Error("Please provide some text");
+
+        // Use ML model if available
+        if (this.useMLModel && this.classifier) {
+            try {
+                const result = await this.classifier(text);
+                if (result && result.length > 0) {
+                    const emotion = result[0].label.toLowerCase();
+                    return emotion;
+                }
+            } catch (error) {
+                console.log('ML model inference failed, falling back to keywords:', error);
+                this.useMLModel = false;
+            }
+        }
+        
+        // Fall back to keyword-based detection
+        const lowerText = text.toLowerCase();
+        let detectedMood = 'surprise'; // default
+        
+        // Find which emotion has the most keyword matches
+        let maxMatches = 0;
+        for (const [mood, keywords] of Object.entries(this.emotionKeywords)) {
+            const matches = keywords.filter(kw => lowerText.includes(kw)).length;
+            if (matches > maxMatches) {
+                maxMatches = matches;
+                detectedMood = mood;
+            }
+        }
+
+        return detectedMood;
+    }
+
+    getResponseMessage(mood) {
+        const playlist = this.playlists[mood] || this.playlists.joy;
+        const messages = {
+            joy: "I'm so glad you're feeling great! 🌟",
+            sadness: "I hear you. Sometimes a good song is like a warm hug. ☕",
+            anger: "Let's channel that energy into something better. ⚡",
+            love: "Love is in the air! Here's something sweet. ❤️",
+            fear: "Take a deep breath. You're safe here. 🌿",
+            surprise: "Wow! What a day, right? 🌈"
+        };
+
+        return {
+            message: messages[mood] || "That's interesting! Here's a mix for you.",
+            playlistMessage: "Based on your vibe, I recommend this:",
+            playlist: playlist
+        };
+    }
 }
 
-// Create and export a singleton instance
 const moodDetector = new MoodDetector();
 export default moodDetector;

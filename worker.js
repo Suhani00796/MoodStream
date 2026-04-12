@@ -10,15 +10,40 @@ const STATIC_ASSETS = [
     '/style.css',
     '/app.js',
     '/model.js',
+    '/manifest.json',
     'https://fonts.googleapis.com/css2?family=Montserrat:wght@600;700;800&family=Inter:wght@300;400;500;600&display=swap'
 ];
 
-// Install - cache only static assets (no external ML models)
+// Optional ML model files (if user downloads them)
+const OPTIONAL_MODEL_FILES = [
+    '/models/model.json',
+    '/models/model_quantized.onnx',
+    '/models/tokenizer.json'
+];
+
+// Install - cache static assets + optional model files
 self.addEventListener('install', (event) => {
     console.log('Service Worker: Installing...');
     event.waitUntil(
         caches.open(CACHE_NAME)
-            .then((cache) => cache.addAll(STATIC_ASSETS))
+            .then((cache) => {
+                // Cache required static files
+                return cache.addAll(STATIC_ASSETS)
+                    .then(() => {
+                        // Try to cache optional model files (don't fail if not present)
+                        return Promise.all(
+                            OPTIONAL_MODEL_FILES.map(file =>
+                                fetch(file)
+                                    .then(response => {
+                                        if (response.ok) {
+                                            return cache.put(file, response);
+                                        }
+                                    })
+                                    .catch(() => console.log(`Service Worker: Model file not found: ${file}`))
+                            )
+                        );
+                    });
+            })
             .catch((error) => console.error('Service Worker: Installation failed:', error))
     );
 });
