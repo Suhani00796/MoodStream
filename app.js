@@ -683,15 +683,10 @@ class MoodBotApp {
             if (error.name === 'NotFoundError') {
                 console.log('No Bluetooth device selected');
                 this.addBotMessage('No Bluetooth device selected. Try again if you want to connect.');
-            } else if (error.name === 'NotSupportedError') {
-                console.error('Bluetooth not supported');
-                this.addBotMessage('❌ Bluetooth is not supported on this device.');
-            } else if (error.name === 'SecurityError') {
-                console.error('Bluetooth permission denied');
-                this.addBotMessage('❌ Bluetooth permission was denied. Please allow access and try again.');
             } else {
+                // Replace technical errors with snappy Gen-Z friendly message
                 console.error('Bluetooth connection error:', error);
-                this.addBotMessage(`❌ Error: ${error.message}`);
+                this.addBotMessage("✨ **Bluetooth Check:** Turn it on in your settings first, bestie. My vibes can't reach you if your BT is ghosting! 🎧");
             }
 
             // Reset button on error
