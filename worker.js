@@ -5,21 +5,21 @@
 
 const CACHE_NAME = 'mood-bot-v1';
 const STATIC_ASSETS = [
-    '/',
-    '/index.html',
-    '/style.css',
-    '/app.js',
-    '/model.js',
-    '/manifest.json',
-    '/icon.jpeg',
+    './',
+    './index.html',
+    './style.css',
+    './app.js',
+    './model.js',
+    './manifest.json',
+    './icon.jpeg',
     'https://fonts.googleapis.com/css2?family=Montserrat:wght@600;700;800&family=Inter:wght@300;400;500;600&display=swap'
 ];
 
 // Optional ML model files (if user downloads them)
 const OPTIONAL_MODEL_FILES = [
-    '/models/model.json',
-    '/models/model_quantized.onnx',
-    '/models/tokenizer.json'
+    './models/model.json',
+    './models/model_quantized.onnx',
+    './models/tokenizer.json'
 ];
 
 // Install - cache static assets + optional model files
