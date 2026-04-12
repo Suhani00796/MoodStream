@@ -1,0 +1,33 @@
+{
+  "name": "mood-bot-offline-ml",
+  "version": "1.0.0",
+  "description": "Offline ML chatbot for mood detection with Spotify playlist recommendations",
+  "main": "index.html",
+  "scripts": {
+    "start": "python3 -m http.server 8000",
+    "dev": "npx http-server -p 8000 -o",
+    "serve": "npx http-server -p 8000"
+  },
+  "keywords": [
+    "machine-learning",
+    "transformers",
+    "emotion-detection",
+    "offline-ml",
+    "edge-ai",
+    "chatbot",
+    "spotify",
+    "bollywood"
+  ],
+  "author": "Suhani",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/Suhani00796/MoodStream.git"
+  },
+  "bugs": {
+    "url": "https://github.com/Suhani00796/MoodStream/issues"
+  },
+  "homepage": "https://suhani00796.github.io/MoodStream/",
+  "devDependencies": {},
+  "dependencies": {}
+}
