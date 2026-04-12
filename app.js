@@ -1,4 +1,4 @@
-"/* ========================================
+/* ========================================
    APP.JS - Main Controller Logic
    Handles user interactions, UI updates, and orchestrates model calls
    ======================================== */
@@ -367,4 +367,3 @@ if (document.readyState === 'loading') {
 } else {
     new MoodBotApp();
 }
-"
