@@ -310,32 +310,62 @@ class MoodBotApp {
     }
 
     /**
-     * Suggest YouTube music with smart query based on all user answers
+     * Suggest YouTube music + secondary app based on all user answers
+     * Opens both YouTube and a mood-specific web app (e.g., VS Code, Wattpad, WhatsApp)
      */
     suggestYouTubeMusic(mood, response) {
         let query = "";
+        let secondaryAppUrl = "";
+        let secondaryAppMessage = "";
+
         const answersText = this.userAnswers.join(" ").toLowerCase();
         
-        // Smart query generation based on user answers
-        if (answersText.includes("low") || answersText.includes("deep blue")) {
+        // Smart query generation + secondary app mapping based on user answers
+        if (answersText.includes("study") || (answersText.includes("low") && answersText.includes("productive"))) {
+            query = "lofi hip hop radio study beats";
+            secondaryAppUrl = "https://vscode.dev";
+            secondaryAppMessage = "VS Code";
+        } else if (answersText.includes("low") || answersText.includes("deep blue")) {
             query = "lofi hip hop radio beats to relax study";
+            secondaryAppUrl = "https://www.youtube.com";
+            secondaryAppMessage = "YouTube";
         } else if (answersText.includes("high") || answersText.includes("neon green")) {
             query = "high energy bollywood dance hits 2026 non-stop";
+            secondaryAppUrl = "https://www.wattpad.com";
+            secondaryAppMessage = "Wattpad (Main Character Energy!)";
         } else if (answersText.includes("soulful") || answersText.includes("sad")) {
             query = "bollywood sad songs playlist emotional";
+            secondaryAppUrl = "https://web.whatsapp.com";
+            secondaryAppMessage = "WhatsApp";
         } else if (answersText.includes("upbeat") || answersText.includes("happy")) {
             query = "upbeat bollywood party mix 2026 non-stop";
+            secondaryAppUrl = "https://www.wattpad.com";
+            secondaryAppMessage = "Wattpad";
         } else if (answersText.includes("horror") || answersText.includes("thriller")) {
             query = "intense dramatic music adrenaline rush";
+            secondaryAppUrl = "https://www.amazon.in";
+            secondaryAppMessage = "Amazon";
         } else if (answersText.includes("comedy")) {
             query = "upbeat funky bollywood comedy songs mix";
+            secondaryAppUrl = "https://www.youtube.com";
+            secondaryAppMessage = "YouTube";
         } else if (answersText.includes("romance") || answersText.includes("romantic")) {
             query = "bollywood romantic mashup love songs 2026";
+            secondaryAppUrl = "https://www.wattpad.com";
+            secondaryAppMessage = "Wattpad";
         } else if (answersText.includes("sunset orange")) {
             query = "warm ambient sunset music relaxing vibes";
+            secondaryAppUrl = "https://www.amazon.in";
+            secondaryAppMessage = "Amazon";
+        } else if (answersText.includes("depressed") || answersText.includes("down")) {
+            query = "healing frequency 432hz relaxation";
+            secondaryAppUrl = "https://www.amazon.in";
+            secondaryAppMessage = "Amazon (Treat Yourself 🛍️)";
         } else {
             // Default to mood-based query
             query = `${mood} music mix playlist hindi english`;
+            secondaryAppUrl = "https://www.youtube.com";
+            secondaryAppMessage = "YouTube";
         }
         
         // Encode and create YouTube URL
@@ -343,8 +373,9 @@ class MoodBotApp {
         const youtubeUrl = `https://www.youtube.com/results?search_query=${encodedQuery}`;
         
         console.log('🎵 YouTube query:', query);
+        console.log('🌐 Secondary app:', secondaryAppUrl);
         
-        // Display final response with YouTube button
+        // Display final response with multi-app button
         const messageDiv = document.createElement('div');
         messageDiv.className = 'message bot-message';
         messageDiv.setAttribute('data-testid', 'bot-message-with-playlist');
@@ -363,9 +394,12 @@ class MoodBotApp {
                     <strong>🎧 Based on Your Vibe</strong><br>
                     <em>Curated from your answers: ${query}</em>
                 </p>
+                <p style="font-size: 0.85em; color: #999; margin: 8px 0;">
+                    ⚠️ <em>Tip: Your browser may block pop-ups. Click "Allow" when prompted so both apps open together!</em>
+                </p>
                 <p>
                     <button class=\"playlist-link\" data-testid=\"playlist-link\">
-                        🎵 Open My Vibe on YouTube
+                        🎵 Open Music + App
                     </button>
                 </p>
             </div>
@@ -373,12 +407,21 @@ class MoodBotApp {
 
         this.chatContainer.appendChild(messageDiv);
         
-        // Add click handler to open YouTube
+        // Add click handler to open both YouTube and secondary app
         const playlistBtn = messageDiv.querySelector('.playlist-link');
         if (playlistBtn) {
             playlistBtn.addEventListener('click', () => {
-                console.log('🎵 Opening YouTube URL:', youtubeUrl);
+                console.log('🎵 Opening YouTube:', youtubeUrl);
+                // Open the YouTube music first
                 window.open(youtubeUrl, '_blank');
+                
+                // Open the secondary app with a slight delay (helps bypass pop-up blockers)
+                if (secondaryAppUrl) {
+                    setTimeout(() => {
+                        console.log('🌐 Opening secondary app:', secondaryAppUrl);
+                        window.open(secondaryAppUrl, '_blank');
+                    }, 500);
+                }
             });
         }
 
