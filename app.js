@@ -128,7 +128,7 @@ class MoodBotApp {
 
         // Check if model is ready
         if (!moodDetector.isModelReady()) {
-            this.addBotMessage('⚠️ Please wait, I'm still loading my brain! Just a few more seconds...');
+            this.addBotMessage('⚠️ Please wait, I am still loading my brain! Just a few more seconds...');
             return;
         }
 
