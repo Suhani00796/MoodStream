@@ -75,77 +75,44 @@ class MoodDetector {
         this.isLoading = true;
 
         try {
-            console.log('Loading DistilBERT emotion classification model...');
+            console.log('Loading sentiment analysis model...');
             
-            // Load the emotion classification pipeline from Hugging Face
-            // Try the emotion detection model first
-            // Model: Xenova/distilbert-base-uncased-emotion (official emotion detection model)
-            // This model can detect: joy, sadness, anger, fear, love, surprise
-            const modelId = 'Xenova/distilbert-base-uncased-emotion';
+            // Use a simpler, proven-to-work sentiment model
+            const modelId = 'Xenova/distilbert-base-uncased-finetuned-sst-2-english';
             console.log('Attempting to load model:', modelId);
             
-            try {
-                this.classifier = await pipeline(
-                    'text-classification',
-                    modelId,
-                    {
-                        // Progress callback to update the UI
-                        progress_callback: (progress) => {
-                            if (progressCallback) {
-                                // Progress object contains: status, name, file, progress, loaded, total
-                                console.log('Model loading progress:', progress);
-                                
-                                // Calculate percentage
-                                if (progress.status === 'progress' && progress.total) {
-                                    const percentage = Math.round((progress.loaded / progress.total) * 100);
-                                    progressCallback({
-                                        status: 'downloading',
-                                        progress: percentage,
-                                        file: progress.file || 'model files'
-                                    });
-                                } else if (progress.status === 'done') {
-                                    progressCallback({
-                                        status: 'done',
-                                        progress: 100,
-                                        file: progress.file || 'complete'
-                                    });
-                                } else if (progress.status === 'initiate') {
-                                    progressCallback({
-                                        status: 'initiating',
-                                        progress: 0,
-                                        file: progress.file || 'starting'
-                                    });
-                                }
+            this.classifier = await pipeline(
+                'sentiment-analysis',
+                modelId,
+                {
+                    progress_callback: (progress) => {
+                        if (progressCallback) {
+                            console.log('Model loading progress:', progress);
+                            
+                            if (progress.status === 'progress' && progress.total) {
+                                const percentage = Math.round((progress.loaded / progress.total) * 100);
+                                progressCallback({
+                                    status: 'downloading',
+                                    progress: percentage,
+                                    file: progress.file || 'model files'
+                                });
+                            } else if (progress.status === 'done') {
+                                progressCallback({
+                                    status: 'done',
+                                    progress: 100,
+                                    file: progress.file || 'complete'
+                                });
+                            } else if (progress.status === 'initiate') {
+                                progressCallback({
+                                    status: 'initiating',
+                                    progress: 0,
+                                    file: progress.file || 'starting'
+                                });
                             }
                         }
                     }
-                );
-            } catch (modelError) {
-                console.warn('Primary model failed to load:', modelError.message);
-                console.log('Trying fallback sentiment model...');
-                
-                // Fallback to sentiment analysis model
-                this.classifier = await pipeline(
-                    'sentiment-analysis',
-                    'Xenova/distilbert-base-uncased-finetuned-sst-2-english',
-                    {
-                        progress_callback: (progress) => {
-                            if (progressCallback) {
-                                console.log('Fallback model loading progress:', progress);
-                                if (progress.status === 'progress' && progress.total) {
-                                    const percentage = Math.round((progress.loaded / progress.total) * 100);
-                                    progressCallback({
-                                        status: 'downloading',
-                                        progress: percentage,
-                                        file: progress.file || 'fallback model'
-                                    });
-                                }
-                            }
-                        }
-                    }
-                );
-                console.warn('⚠️  Using sentiment analysis model as fallback');
-            }
+                }
+            );
 
             this.isReady = true;
             this.isLoading = false;
@@ -186,23 +153,18 @@ class MoodDetector {
             // Run inference - this happens entirely in the browser!
             const result = await this.classifier(text);
             
-            // Result format varies by model:
-            // Emotion model: [{ label: 'joy', score: 0.9876 }]
-            // Sentiment model: [{ label: 'POSITIVE', score: 0.9876 }]
+            // Result format: [{ label: 'POSITIVE' | 'NEGATIVE', score: 0.9876 }]
             const topResult = result[0];
             let emotionLabel = topResult.label.toLowerCase();
             const confidence = (topResult.score * 100).toFixed(1);
 
-            // Map sentiment labels to emotions if using fallback model
+            // Map sentiment to emotion
             const sentimentToEmotionMap = {
                 'positive': 'joy',
-                'negative': 'sadness',
-                'neutral': 'surprise'
+                'negative': 'sadness'
             };
             
-            if (sentimentToEmotionMap[emotionLabel]) {
-                emotionLabel = sentimentToEmotionMap[emotionLabel];
-            }
+            emotionLabel = sentimentToEmotionMap[emotionLabel] || 'surprise';
 
             console.log('Detected emotion:', emotionLabel, 'with confidence:', confidence + '%');
 
