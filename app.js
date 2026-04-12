@@ -33,9 +33,6 @@ class MoodBotApp {
         this.userAnswers = [];
         this.inQuestionMode = false;
 
-        // Audio output device state
-        this.selectedAudioDeviceId = null;
-
         // Bluetooth device state
         this.bluetoothDevice = null;
         this.gattServer = null;
@@ -79,12 +76,6 @@ class MoodBotApp {
         const bluetoothBtn = document.getElementById('bluetooth-btn');
         if (bluetoothBtn) {
             bluetoothBtn.addEventListener('click', () => this.handleBluetoothConnect());
-        }
-
-        // Audio output button
-        const audioOutputBtn = document.getElementById('audio-output-btn');
-        if (audioOutputBtn) {
-            audioOutputBtn.addEventListener('click', () => this.handleAudioOutputSelect());
         }
 
         // Auto-resize input field (optional enhancement)
@@ -687,130 +678,6 @@ class MoodBotApp {
                 console.error('Error disconnecting:', error);
             }
         }
-    }
-
-    /**
-     * Handle audio output device selection
-     */
-    async handleAudioOutputSelect() {
-        const audioOutputBtn = document.getElementById('audio-output-btn');
-        
-        // Check if Audio Output API is supported
-        if (typeof HTMLMediaElement.prototype.setSinkId === 'undefined') {
-            this.addBotMessage('❌ Audio Output Device selection is not supported in your browser. This feature works best in Chrome, Edge, or Opera.');
-            console.error('Audio Output API not supported');
-            return;
-        }
-
-        try {
-            audioOutputBtn.disabled = true;
-            audioOutputBtn.innerHTML = '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M11 5L6 9H2v6h4l5 4V5zM15.5 12a3.5 3.5 0 000-7m5.31 5.88a8.01 8.01 0 000-11.78" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg><span class="audio-status">Scanning...</span>';
-            
-            console.log('🔊 Enumerating audio output devices...');
-
-            // Request microphone permission first (required to enumerate devices)
-            try {
-                await navigator.mediaDevices.getUserMedia({ audio: true }).then(stream => {
-                    // Stop all tracks immediately - we only needed permission
-                    stream.getTracks().forEach(track => track.stop());
-                });
-            } catch (permError) {
-                console.log('Permission status:', permError.message);
-            }
-
-            // Enumerate devices
-            const devices = await navigator.mediaDevices.enumerateDevices();
-            const audioOutputDevices = devices.filter(device => device.kind === 'audiooutput');
-
-            console.log('📱 Available audio outputs:', audioOutputDevices);
-
-            if (audioOutputDevices.length === 0) {
-                this.addBotMessage('No audio output devices found. Using system default.');
-                audioOutputBtn.disabled = false;
-                audioOutputBtn.innerHTML = '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M11 5L6 9H2v6h4l5 4V5zM15.5 12a3.5 3.5 0 000-7m5.31 5.88a8.01 8.01 0 000-11.78" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg><span class="audio-status">Audio</span>';
-                return;
-            }
-
-            // If only one device, use it. Otherwise, let user choose
-            if (audioOutputDevices.length === 1) {
-                await this.setAudioOutput(audioOutputDevices[0]);
-            } else {
-                // Show device selection in chat
-                this.showAudioDeviceSelector(audioOutputDevices, audioOutputBtn);
-            }
-
-        } catch (error) {
-            console.error('Audio output error:', error);
-            this.addBotMessage(`❌ Error accessing audio devices: ${error.message}`);
-            audioOutputBtn.disabled = false;
-            audioOutputBtn.innerHTML = '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M11 5L6 9H2v6h4l5 4V5zM15.5 12a3.5 3.5 0 000-7m5.31 5.88a8.01 8.01 0 000-11.78" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg><span class="audio-status">Audio</span>';
-        }
-    }
-
-    /**
-     * Set audio output to specific device
-     */
-    async setAudioOutput(device) {
-        try {
-            // Store device ID for later use with video/audio elements
-            this.selectedAudioDeviceId = device.deviceId;
-            
-            console.log('🔊 Using audio output device:', device.label || device.deviceId);
-            this.addBotMessage(`🔊 Audio will play through **${device.label || 'System Device'}**. YouTube audio should route to this device.`);
-            
-            // Update button to show selected device
-            const audioOutputBtn = document.getElementById('audio-output-btn');
-            audioOutputBtn.classList.add('device-selected');
-            audioOutputBtn.title = `Audio: ${device.label || 'System Device'}`;
-            audioOutputBtn.disabled = false;
-            
-        } catch (error) {
-            console.error('Error setting audio output:', error);
-            this.addBotMessage(`❌ Could not set audio output: ${error.message}`);
-        }
-    }
-
-    /**
-     * Show device selector with buttons
-     */
-    showAudioDeviceSelector(devices, audioOutputBtn) {
-        const messageDiv = document.createElement('div');
-        messageDiv.className = 'message bot-message';
-
-        let devicesHTML = '<p>Which speaker or headphones do you want to use?</p><div style="display: flex; flex-wrap: wrap; gap: 8px; margin-top: 12px;">';
-        
-        devices.forEach((device, index) => {
-            const deviceLabel = device.label || `Device ${index + 1}`;
-            devicesHTML += `<button class="audio-device-btn" data-device-id="${device.deviceId}" data-device-label="${deviceLabel}" style="background: var(--spotify-green); color: #000; padding: 8px 16px; border-radius: 16px; border: none; cursor: pointer; font-weight: 500; font-size: 0.85rem;">${deviceLabel}</button>`;
-        });
-        
-        devicesHTML += '</div>';
-
-        messageDiv.innerHTML = `
-            <div class="message-avatar bot-avatar">
-                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                    <circle cx="12" cy="12" r="10" fill="#1DB954"/>
-                    <path d="M8 14s1.5 2 4 2 4-2 4-2M9 9h.01M15 9h.01" stroke="#000" stroke-width="2" stroke-linecap="round"/>
-                </svg>
-            </div>
-            <div class="message-content">${devicesHTML}</div>
-        `;
-
-        this.chatContainer.appendChild(messageDiv);
-        this.scrollToBottom();
-
-        // Add event listeners to device buttons
-        const deviceButtons = messageDiv.querySelectorAll('.audio-device-btn');
-        deviceButtons.forEach(button => {
-            button.addEventListener('click', async () => {
-                const deviceId = button.getAttribute('data-device-id');
-                const deviceLabel = button.getAttribute('data-device-label');
-                await this.setAudioOutput({ deviceId, label: deviceLabel });
-                audioOutputBtn.disabled = false;
-            });
-        });
-
-        audioOutputBtn.disabled = false;
     }
 }
 
