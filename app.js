@@ -22,11 +22,10 @@ class MoodBotApp {
         this.messageHistory = [];
 
         // Leo Conversation State
-        this.conversationLog = "";
-        this.isChatting = true;
+        this.userTextLog = "";
+        this.isConversationActive = false;
         this.conversationTimer = null;
         this.timerInterval = null;
-        this.timerStarted = false;
 
         // Bluetooth device state
         this.bluetoothDevice = null;
@@ -210,145 +209,154 @@ class MoodBotApp {
     }
 
     /**
-     * Initialize Leo's conversation mode with 1:30 minute timer
+     * Start the continuous vibe conversation with 1:30 timer
      */
-    initLeo() {
-        this.conversationLog = "";
-        this.isChatting = true;
-        this.timerStarted = false;
+    startContinuousVibe() {
+        // 1. Leo kicks off the chat
+        this.addBotMessage("Do you want to eat something sweetie?.. 🧁");
+        this.isConversationActive = true;
+        this.userTextLog = "";
         
-        this.addBotMessage("Hey gorgeous! 💕 Let's chat for a bit and I'll figure out what vibe you're channeling right now... You got 1️⃣:3️⃣0️⃣ minutes! Make it count! ✨");
-        console.log('🎤 Leo: Starting conversation (90-second timer)...');
-    }
-
-    /**
-     * Leo's brain - keyword matching for natural conversation
-     */
-    leoBrain(userInput) {
-        const text = userInput.toLowerCase();
-        this.conversationLog += " " + text;
-
-        // Start the 1:30 timer on the very first message
-        if (!this.timerStarted) {
-            this.startVibeTimer(90); // 90 seconds = 1:30
-            this.timerStarted = true;
+        // Show progress container
+        const progressContainer = document.getElementById('vibe-progress-container');
+        if (progressContainer) {
+            progressContainer.style.display = 'block';
         }
-
-        // Dynamic Response Logic
-        if (text.includes("hungry") || text.includes("eat") || text.includes("food")) {
-            return "Food is life! But tell me, does your stomach feel as chaotic as your day was? 🍕";
-        } else if (text.includes("work") || text.includes("study") || text.includes("stress")) {
-            return "That sounds intense, sweetie. Did you at least take a break, or are you pushing too hard? ☕";
-        } else if (text.includes("happy") || text.includes("good") || text.includes("great")) {
-            return "Love that energy! ✨ What was the best part of the day? Don't leave out the details!";
-        } else if (text.includes("tired") || text.includes("sleepy") || text.includes("exhausted")) {
-            return "Oh no, you're running on empty! 🪫 If you could teleport to your bed right now, would you?";
-        } else {
-            // Fallback for general talk
-            const fillers = [
-                "I'm all ears, tell me more...",
-                "Interesting... how did that make you feel?",
-                "You're so brave for handling that. What happened next?",
-                "I'm vibe-checking everything you're saying. Keep going!"
-            ];
-            return fillers[Math.floor(Math.random() * fillers.length)];
-        }
-    }
-
-    /**
-     * Handle Leo's chat using the brain function
-     */
-    handleLeoChat(userMessage) {
-        if (!this.isChatting) return;
         
-        // Get Leo's response using the brain
-        const response = this.leoBrain(userMessage);
-        this.addBotMessage(response);
-    }
+        // 2. Start the 1:30 (90 seconds) Countdown
+        let secondsLeft = 90;
+        const progressTimer = setInterval(() => {
+            secondsLeft--;
+            this.updateTimerUI(secondsLeft); // Update your Spotify-style bar
 
-    /**
-     * Start the vibe timer (1:30 countdown)
-     */
-    startVibeTimer(seconds) {
-        let timeLeft = seconds;
-        const bar = document.getElementById('vibe-bar');
-        const text = document.getElementById('timer-text');
-        
-        this.timerInterval = setInterval(() => {
-            timeLeft--;
-            
-            // Update Bar Width
-            const percentage = (timeLeft / seconds) * 100;
-            if (bar) {
-                bar.style.width = percentage + "%";
-            }
-            
-            // Update Text
-            const mins = Math.floor(timeLeft / 60);
-            const secs = timeLeft % 60;
-            if (text) {
-                text.innerText = `${mins}:${secs < 10 ? '0' : ''}${secs}`;
-            }
-
-            if (timeLeft <= 0) {
-                clearInterval(this.timerInterval);
-                this.finishChatAndLaunch();
+            if (secondsLeft <= 0) {
+                clearInterval(progressTimer);
+                this.handleConversationEnd(); // This starts the AI function automatically
             }
         }, 1000);
     }
 
     /**
-     * Finish chat and launch the vibe hub
+     * Update timer UI (progress bar)
      */
-    async finishChatAndLaunch() {
-        this.isChatting = false;
-        this.userInput.disabled = true;
-        this.sendBtn.disabled = true;
+    updateTimerUI(secondsLeft) {
+        const total = 90;
+        const bar = document.getElementById('vibe-bar');
+        const text = document.getElementById('timer-text');
         
-        this.addBotMessage("Times up! 🛑 I've analyzed your day. Here is your custom escape plan...");
-
-        try {
-            // Use your existing model to get the mood from the whole history
-            const finalMood = await moodDetector.getMood(this.conversationLog);
-            console.log('🎯 Final mood detected:', finalMood);
-            
-            // Define the apps based on mood
-            const apps = {
-                'romantic': { yt: 'romantic bollywood', link: 'https://www.wattpad.com', name: 'Wattpad' },
-                'sadness': { yt: 'sad hindi songs', link: 'https://www.amazon.in', name: 'Amazon' },
-                'joy': { yt: 'bhakti songs', link: 'https://www.pinterest.com', name: 'Pinterest' },
-                'love': { yt: 'love songs bollywood', link: 'https://www.blinkit.com', name: 'Blinkit' },
-                'surprise': { yt: 'party dance mix', link: 'https://play.google.com', name: 'Play Store' },
-                'fear': { yt: 'lofi study', link: 'https://vscode.dev', name: 'VS Code' },
-                'anger': { yt: 'gym workout music', link: 'https://www.youtube.com', name: 'YouTube' }
-            };
-
-            const choice = apps[finalMood] || apps['joy'];
-            
-            await this.delay(800);
-            
-            // Display the Hub
-            this.displayVibeHub(finalMood, choice);
-        } catch (error) {
-            console.error('Error analyzing conversation:', error);
-            this.addBotMessage('😅 Had a little hiccup analyzing your vibe. But here\'s something for you anyway!');
-            const defaultChoice = { yt: 'lofi study', link: 'https://www.youtube.com', name: 'YouTube' };
-            this.displayVibeHub('joy', defaultChoice);
+        const percentage = (secondsLeft / total) * 100;
+        if (bar) {
+            bar.style.width = percentage + "%";
+        }
+        
+        const mins = Math.floor(secondsLeft / 60);
+        const secs = secondsLeft % 60;
+        if (text) {
+            text.innerText = `${mins}:${secs < 10 ? '0' : ''}${secs}`;
         }
     }
 
     /**
-     * Display the vibe hub with music and app launch options
+     * Handle end of conversation - analyze and launch vibe hub
      */
-    displayVibeHub(mood, choice) {
+    async handleConversationEnd() {
+        this.isConversationActive = false;
+        this.userInput.disabled = true;
+        this.sendBtn.disabled = true;
+        
+        // Hide progress container
+        const progressContainer = document.getElementById('vibe-progress-container');
+        if (progressContainer) {
+            progressContainer.style.display = 'none';
+        }
+        
+        this.addBotMessage("Times up! 🛑 Let me analyze our chat...");
+        
+        try {
+            // Call your ML model using the full history
+            const detectedMood = await moodDetector.getMood(this.userTextLog);
+            console.log('🎯 Final mood detected:', detectedMood);
+            
+            await this.delay(800);
+            
+            // Launch the final apps and music
+            this.launchVibeHub(detectedMood);
+        } catch (error) {
+            console.error('Error analyzing conversation:', error);
+            this.addBotMessage('😅 Had a little hiccup analyzing your vibe. But here\'s something for you anyway!');
+            this.launchVibeHub('study'); // Default fallback
+        }
+    }
+
+    /**
+     * Initialize Leo's conversation mode
+     */
+    initLeo() {
+        this.startContinuousVibe();
+    }
+
+    /**
+     * Get Leo's response based on user input
+     */
+    getLeoResponse(userInput) {
+        this.userTextLog += " " + userInput; // Save everything for the final AI analysis
+        
+        const input = userInput.toLowerCase();
+        
+        // Brain Logic: Reacting to the user's specific text
+        if (input.includes("sad") || input.includes("bad") || input.includes("crying")) {
+            return "I can feel that through the screen. 🫂 Want to vent more about it or should I just listen?";
+        } 
+        if (input.includes("happy") || input.includes("celebrate") || input.includes("won")) {
+            return "Wait, that's huge! ✨ Tell me exactly how you're celebrating!";
+        }
+        if (userInput.length < 10) {
+            return "Don't be shy, sweetie. Tell me more about your day.";
+        }
+
+        // Default "Listening" responses
+        const fillers = [
+            "Go on, I'm listening...", 
+            "That's interesting, how did that happen?", 
+            "I'm catching your vibe, keep talking!"
+        ];
+        return fillers[Math.floor(Math.random() * fillers.length)];
+    }
+
+    /**
+     * Handle Leo's chat using the context switcher
+     */
+    handleLeoChat(userMessage) {
+        if (!this.isConversationActive) return;
+        
+        // Get Leo's response using the context switcher
+        const response = this.getLeoResponse(userMessage);
+        this.addBotMessage(response);
+    }
+
+    /**
+     * Launch the vibe hub - maps mood to specific web apps
+     */
+    launchVibeHub(mood) {
+        const config = {
+            'romantic': { yt: 'romantic bollywood', app: 'https://www.wattpad.com', name: 'Wattpad' },
+            'sadness': { yt: 'sad hindi soulful', app: 'https://www.amazon.in', name: 'Amazon' },
+            'joy': { yt: 'bhakti songs', app: 'https://www.pinterest.com/search/pins/?q=god%20aesthetic', name: 'Pinterest' },
+            'love': { yt: 'love songs bollywood', app: 'https://www.blinkit.com', name: 'Blinkit' },
+            'surprise': { yt: 'party dance songs', app: 'https://play.google.com', name: 'Play Store' },
+            'fear': { yt: 'lofi study focus', app: 'https://vscode.dev', name: 'VS Code' },
+            'anger': { yt: 'gym workout music', app: 'https://www.youtube.com', name: 'YouTube' }
+        };
+
+        const choice = config[mood] || config['joy'];
+
+        // Professional Hub Card
         const hubHTML = `
-            <div class="vibe-hub-launch">
-                <div class="vibe-hub-card">
-                    <p style="margin-bottom: 16px;"><strong>✨ I've curated a <span style="color: #1DB954;">${mood}</span> vibe for you.</strong></p>
-                    <div class="vibe-hub-buttons">
-                        <button class="vibe-hub-btn" onclick="window.open('https://www.youtube.com/results?search_query=${encodeURIComponent(choice.yt)}', '_blank')">🎵 Play Music</button>
-                        <button class="vibe-hub-btn" onclick="window.open('${choice.link}', '_blank')">🚀 Launch ${choice.name}</button>
-                    </div>
+            <div class="vibe-card">
+                <p>Analysis Complete! You're in a <strong>${mood}</strong> vibe.</p>
+                <div class="btn-container">
+                    <button onclick="window.open('https://www.youtube.com/results?search_query=${encodeURIComponent(choice.yt)}', '_blank')">🎵 Open Music</button>
+                    <button onclick="window.open('${choice.app}', '_blank')">🚀 Launch ${choice.name}</button>
                 </div>
             </div>
         `;
@@ -653,8 +661,8 @@ class MoodBotApp {
         this.messageHistory = [];
         this.userAnswers = [];
         this.currentQuestionIndex = 0;
-        this.isChatting = true;
-        this.timerStarted = false;
+        this.isConversationActive = false;
+        this.userTextLog = "";
         
         // Re-enable input
         this.userInput.disabled = false;
