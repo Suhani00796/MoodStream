@@ -384,7 +384,8 @@ class MoodBotApp {
      * Start the question-based interaction mode with multiple choice
      */
     startQuestionMode() {
-        // Placeholder - replaced by Leo flow
+        // Start Leo's conversation mode
+        this.initLeo();
     }
 
     /**

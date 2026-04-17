@@ -448,19 +448,20 @@ body::before {
 #vibe-progress-container {
     width: 100%;
     background: #333;
-    height: 10px;
-    border-radius: 5px;
+    height: 8px;
+    border-radius: 10px;
     position: relative;
-    margin-bottom: 16px;
+    margin-bottom: 15px;
     display: flex;
     align-items: center;
+    overflow: hidden;
 }
 
 #vibe-bar {
     height: 100%;
     background: linear-gradient(90deg, var(--spotify-green-dark), var(--spotify-green-light));
     width: 100%;
-    border-radius: 5px;
+    border-radius: 10px;
     transition: width 1s linear;
     box-shadow: 0 0 10px rgba(29, 185, 84, 0.5);
 }
@@ -472,6 +473,7 @@ body::before {
     color: var(--text-secondary);
     font-weight: 600;
     font-family: 'Courier New', monospace;
+    z-index: 10;
 }
 
 /* ========================================
