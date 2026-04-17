@@ -25,8 +25,9 @@ class MoodBotApp {
         // Leo Conversation State
         this.userTextLog = "";
         this.isConversationActive = false;
-        this.conversationTimer = null;
-        this.timerInterval = null;
+        this.messageCount = 0;
+        this.maxMessages = 8;
+        this.fullChatLog = "";
 
         // API Configuration - Leo Brain endpoints
         this.apiConfig = {
@@ -330,57 +331,49 @@ class MoodBotApp {
     }
 
     /**
-     * Start the continuous vibe conversation with 1:30 timer
+     * Start Leo's conversation - message-count based (8 messages)
      */
     startContinuousVibe() {
         // 1. Leo kicks off the chat
         this.addBotMessage("Do you want to eat something sweetie?.. 🧁");
         this.isConversationActive = true;
+        this.messageCount = 0;
+        this.fullChatLog = "";
         this.userTextLog = "";
         
-        // Show progress container
+        // Show progress container (now shows message counter instead of timer)
         const progressContainer = document.getElementById('vibe-progress-container');
         if (progressContainer) {
             progressContainer.style.display = 'block';
         }
         
-        // 2. Start the 1:30 (90 seconds) Countdown
-        let secondsLeft = 90;
-        const progressTimer = setInterval(() => {
-            secondsLeft--;
-            this.updateTimerUI(secondsLeft); // Update your Spotify-style bar
-
-            if (secondsLeft <= 0) {
-                clearInterval(progressTimer);
-                this.handleConversationEnd(); // This starts the AI function automatically
-            }
-        }, 1000);
+        // Initialize counter display
+        this.updateCounterUI(this.maxMessages);
     }
 
     /**
-     * Update timer UI (progress bar)
+     * Update message counter UI
      */
-    updateTimerUI(secondsLeft) {
-        const total = 90;
+    updateCounterUI(messagesLeft) {
         const bar = document.getElementById('vibe-bar');
         const text = document.getElementById('timer-text');
         
-        const percentage = (secondsLeft / total) * 100;
+        // Progress bar (visual representation of messages)
+        const percentage = ((this.maxMessages - messagesLeft) / this.maxMessages) * 100;
         if (bar) {
             bar.style.width = percentage + "%";
         }
         
-        const mins = Math.floor(secondsLeft / 60);
-        const secs = secondsLeft % 60;
+        // Display messages left
         if (text) {
-            text.innerText = `${mins}:${secs < 10 ? '0' : ''}${secs}`;
+            text.innerText = `${messagesLeft} left`;
         }
     }
 
     /**
-     * Handle end of conversation - analyze and launch vibe hub
+     * Process final vibe hub after 8 messages
      */
-    async handleConversationEnd() {
+    async processFinalVibe() {
         this.isConversationActive = false;
         this.userInput.disabled = true;
         this.sendBtn.disabled = true;
@@ -391,22 +384,17 @@ class MoodBotApp {
             progressContainer.style.display = 'none';
         }
         
-        this.addBotMessage("Times up! 🛑 Let me analyze our chat...");
+        this.addBotMessage("That's 8! 🛑 I've read your vibes perfectly. Here is your escape plan...");
         
         try {
-            // Try API first, fall back to local detection
-            const moodAnalysis = await this.analyzeMoodFromAPI();
-            
-            console.log('🎯 Final mood detected:', moodAnalysis.mood, '(source:', moodAnalysis.source + ')');
+            // Analyze mood from full conversation
+            const mood = await moodDetector.getMood(this.fullChatLog);
+            console.log('🎯 Final mood detected:', mood);
             
             await this.delay(800);
             
-            // Launch the vibe hub with API data or fallback
-            if (moodAnalysis.source === 'api' && moodAnalysis.vibeHub) {
-                this.launchVibeHubFromAPI(moodAnalysis.vibeHub, moodAnalysis.mood);
-            } else {
-                this.launchVibeHub(moodAnalysis.mood);
-            }
+            // Launch the vibe hub
+            this.launchVibeHub(mood);
         } catch (error) {
             console.error('Error analyzing conversation:', error);
             this.addBotMessage('😅 Had a little hiccup analyzing your vibe. But here\'s something for you anyway!');
@@ -476,17 +464,67 @@ class MoodBotApp {
     }
 
     /**
-     * Handle Leo's chat - using API with fallback
+     * Handle Leo's chat - message counting based
      */
     async handleLeoChat(userMessage) {
         if (!this.isConversationActive) return;
         
-        // Accumulate text for final analysis
+        // 1. Count the message
+        this.messageCount++;
+        this.fullChatLog += " " + userMessage;
         this.userTextLog += " " + userMessage;
         
-        // Get Leo's response with API + fallback
-        const response = await this.getLeoResponseFromAPI(userMessage);
-        this.addBotMessage(response.reply);
+        // 2. Get Leo's smart response
+        const leoResponse = this.getSmartResponse(userMessage);
+        this.addBotMessage(leoResponse);
+        
+        // 3. Check if we hit 8 messages
+        const messagesRemaining = this.maxMessages - this.messageCount;
+        if (messagesRemaining <= 0) {
+            await this.delay(600);
+            this.processFinalVibe();
+            return;
+        }
+        
+        // 4. Update counter UI
+        this.updateCounterUI(messagesRemaining);
+    }
+
+    /**
+     * Get smart contextual response based on user input
+     */
+    getSmartResponse(input) {
+        const text = input.toLowerCase();
+        
+        // Emotion-based responses
+        if (text.includes("eat") || text.includes("hungry")) {
+            return "Food is the best love language! What's your go-to comfort meal? 🍕";
+        }
+        if (text.includes("sad") || text.includes("lonely") || text.includes("cry")) {
+            return "I'm right here with you. Tell me what's weighing on your heart... 🫂";
+        }
+        if (text.includes("busy") || text.includes("study") || text.includes("work")) {
+            return "The hustle is real! Are you keeping your focus or needing a break? ☕";
+        }
+        if (text.includes("happy") || text.includes("excited") || text.includes("great")) {
+            return "OMG that's amazing! I love this energy! Tell me everything! 🌟";
+        }
+        if (text.includes("love") || text.includes("crush") || text.includes("romance")) {
+            return "Ohhh, romance! 💕 Tell me all the juicy details. Who is this special person?";
+        }
+        if (text.includes("music") || text.includes("song") || text.includes("vibe")) {
+            return "Music is life! What's your current obsession? 🎵";
+        }
+        
+        // Default filler responses
+        const fillers = [
+            "Tell me more, sweetie. I'm all ears... ✨",
+            "That's interesting! Keep going, I want to know everything! 👂",
+            "Ooh, I'm listening! What happened next? 🤔",
+            "You're giving me good vibes! Tell me more! 💙",
+            "That resonates with me. What else? 📖"
+        ];
+        return fillers[Math.floor(Math.random() * fillers.length)];
     }
 
     /**
@@ -528,14 +566,14 @@ class MoodBotApp {
      */
     launchVibeHub(mood) {
         const config = {
-            'romantic': { yt: 'romantic bollywood', app: 'https://www.wattpad.com', name: 'Wattpad' },
-            'sadness': { yt: 'sad hindi soulful', app: 'https://www.amazon.in', name: 'Amazon' },
-            'joy': { yt: 'bhakti songs', app: 'https://www.pinterest.com/search/pins/?q=god%20aesthetic', name: 'Pinterest' },
-            'love': { yt: 'love songs bollywood', app: 'https://www.blinkit.com', name: 'Blinkit' },
-            'surprise': { yt: 'party dance songs', app: 'https://play.google.com', name: 'Play Store' },
-            'fear': { yt: 'lofi study focus', app: 'https://vscode.dev', name: 'VS Code' },
-            'anger': { yt: 'gym workout music', app: 'https://www.youtube.com', name: 'YouTube' },
-            'neutral': { yt: 'feel good music mix', app: 'https://spotify.com', name: 'Spotify' }
+            'romantic': { yt: 'Bollywood Romantic Hits', app: 'https://www.wattpad.com', name: 'Wattpad' },
+            'sadness': { yt: 'Soulful Hindi Sad Songs', app: 'https://www.amazon.in', name: 'Amazon' },
+            'joy': { yt: 'Happy Upbeat Bollywood Mix', app: 'https://www.pinterest.com/search/pins/?q=happy+aesthetic', name: 'Pinterest' },
+            'love': { yt: 'Love Songs Bollywood', app: 'https://www.blinkit.com', name: 'Blinkit' },
+            'surprise': { yt: 'Upbeat Party Dance Mix', app: 'https://play.google.com', name: 'Play Store' },
+            'fear': { yt: 'Lofi Focus Study Music', app: 'https://vscode.dev', name: 'VS Code' },
+            'anger': { yt: 'Gym Workout Music', app: 'https://github.com', name: 'GitHub' },
+            'neutral': { yt: 'Feel Good Music Mix', app: 'https://spotify.com', name: 'Spotify' }
         };
 
         const choice = config[mood] || config['joy'];
