@@ -1,0 +1,22 @@
+{
+  "name": "moodstream-api",
+  "version": "1.0.0",
+  "description": "Leo Brain API for MoodStream - Intelligent mood detection and chatbot responses",
+  "main": "server.js",
+  "type": "module",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "node --watch server.js"
+  },
+  "keywords": ["api", "emotion-detection", "chatbot", "leo"],
+  "author": "Suhani",
+  "license": "MIT",
+  "dependencies": {
+    "express": "^4.18.2",
+    "cors": "^2.8.5",
+    "dotenv": "^16.0.3"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  }
+}

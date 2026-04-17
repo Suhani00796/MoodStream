@@ -1,6 +1,7 @@
 /* ========================================
    APP.JS - Main Controller Logic
    Handles user interactions, UI updates, and orchestrates model calls
+   Integrates with Leo Brain API + fallback to local keyword detection
    ======================================== */
 
 import moodDetector from './model.js';
@@ -27,6 +28,19 @@ class MoodBotApp {
         this.conversationTimer = null;
         this.timerInterval = null;
 
+        // API Configuration - Leo Brain endpoints
+        this.apiConfig = {
+            // Set to your deployed Render API URL or local dev server
+            baseUrl: this.getApiBaseUrl(),
+            endpoints: {
+                chat: '/leo-chat',
+                analyzeMood: '/analyze-mood'
+            },
+            timeout: 5000 // 5 second timeout before fallback
+        };
+        this.useApiPrimary = true; // Try API first, then fallback
+        this.apiHealthy = false; // Track API health status
+
         // Bluetooth device state
         this.bluetoothDevice = null;
         this.gattServer = null;
@@ -36,6 +50,113 @@ class MoodBotApp {
 
         // Initialize the app
         this.init();
+    }
+
+    /**
+     * Determine the correct API base URL based on environment
+     */
+    getApiBaseUrl() {
+        // Check for localStorage override (useful for testing)
+        const storedUrl = localStorage.getItem('LEO_API_URL');
+        if (storedUrl) return storedUrl;
+
+        // Production Render deployment
+        if (window.location.hostname === 'suhani00796.github.io') {
+            return 'https://moodstream-api.onrender.com';
+        }
+
+        // Local development
+        if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
+            return 'http://localhost:5000';
+        }
+
+        // Default fallback
+        return 'https://moodstream-api.onrender.com';
+    }
+
+    /**
+     * Make a generalized API call with timeout + fallback
+     * @param {string} endpoint - API endpoint (e.g., '/leo-chat')
+     * @param {object} data - Request body
+     * @returns {Promise<object>} Response data or null if failed
+     */
+    async callLeoAPI(endpoint, data) {
+        if (!this.useApiPrimary) return null; // Skip API if disabled
+
+        try {
+            const controller = new AbortController();
+            const timeoutId = setTimeout(() => controller.abort(), this.apiConfig.timeout);
+
+            const response = await fetch(this.apiConfig.baseUrl + endpoint, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(data),
+                signal: controller.signal
+            });
+
+            clearTimeout(timeoutId);
+
+            if (!response.ok) {
+                throw new Error(`API returned ${response.status}`);
+            }
+
+            const result = await response.json();
+            this.apiHealthy = true;
+            console.log('✅ Leo API call successful:', endpoint);
+            return result;
+
+        } catch (error) {
+            console.warn('⚠️  Leo API call failed:', error.message);
+            this.apiHealthy = false;
+            return null; // Will trigger fallback
+        }
+    }
+
+    /**
+     * Get Leo's response - tries API first, falls back to local
+     */
+    async getLeoResponseFromAPI(userMessage) {
+        const result = await this.callLeoAPI(this.apiConfig.endpoints.chat, {
+            message: userMessage,
+            history: this.userTextLog
+        });
+
+        if (result) {
+            // API succeeded
+            return {
+                reply: result.reply,
+                mood: result.currentMood,
+                confidence: result.confidence,
+                source: 'api'
+            };
+        }
+
+        // API failed - fall back to local
+        return this.getLeoResponseLocal(userMessage);
+    }
+
+    /**
+     * Get mood analysis - tries API first, falls back to local
+     */
+    async analyzeMoodFromAPI() {
+        const result = await this.callLeoAPI(this.apiConfig.endpoints.analyzeMood, {
+            conversationHistory: this.userTextLog
+        });
+
+        if (result) {
+            // API succeeded
+            return {
+                mood: result.primaryMood,
+                confidence: result.confidence,
+                vibeHub: result.vibeHub,
+                source: 'api'
+            };
+        }
+
+        // API failed - fall back to local
+        return this.analyzeMoodLocal();
     }
 
     /**
@@ -273,18 +394,23 @@ class MoodBotApp {
         this.addBotMessage("Times up! 🛑 Let me analyze our chat...");
         
         try {
-            // Call your ML model using the full history
-            const detectedMood = await moodDetector.getMood(this.userTextLog);
-            console.log('🎯 Final mood detected:', detectedMood);
+            // Try API first, fall back to local detection
+            const moodAnalysis = await this.analyzeMoodFromAPI();
+            
+            console.log('🎯 Final mood detected:', moodAnalysis.mood, '(source:', moodAnalysis.source + ')');
             
             await this.delay(800);
             
-            // Launch the final apps and music
-            this.launchVibeHub(detectedMood);
+            // Launch the vibe hub with API data or fallback
+            if (moodAnalysis.source === 'api' && moodAnalysis.vibeHub) {
+                this.launchVibeHubFromAPI(moodAnalysis.vibeHub, moodAnalysis.mood);
+            } else {
+                this.launchVibeHub(moodAnalysis.mood);
+            }
         } catch (error) {
             console.error('Error analyzing conversation:', error);
             this.addBotMessage('😅 Had a little hiccup analyzing your vibe. But here\'s something for you anyway!');
-            this.launchVibeHub('study'); // Default fallback
+            this.launchVibeHub('joy'); // Default fallback
         }
     }
 
@@ -296,10 +422,11 @@ class MoodBotApp {
     }
 
     /**
-     * Get Leo's response based on user input
+     * Get Leo's response based on user input - LOCAL FALLBACK
+     * Used when API is unavailable
      */
-    getLeoResponse(userInput) {
-        this.userTextLog += " " + userInput; // Save everything for the final AI analysis
+    getLeoResponseLocal(userInput) {
+        this.userTextLog += " " + userInput;
         
         const input = userInput.toLowerCase();
         
@@ -314,7 +441,6 @@ class MoodBotApp {
             return "Don't be shy, sweetie. Tell me more about your day.";
         }
 
-        // Default "Listening" responses
         const fillers = [
             "Go on, I'm listening...", 
             "That's interesting, how did that happen?", 
@@ -324,18 +450,81 @@ class MoodBotApp {
     }
 
     /**
-     * Handle Leo's chat using the context switcher
+     * Analyze mood using local detection - FALLBACK
+     * Uses the imported moodDetector from model.js
      */
-    handleLeoChat(userMessage) {
-        if (!this.isConversationActive) return;
-        
-        // Get Leo's response using the context switcher
-        const response = this.getLeoResponse(userMessage);
-        this.addBotMessage(response);
+    analyzeMoodLocal() {
+        return moodDetector.getMood(this.userTextLog).then(mood => {
+            // Get response message with playlist
+            const responseData = moodDetector.getResponseMessage(mood);
+            return {
+                mood,
+                confidence: 60,
+                vibeHub: {
+                    playlistName: responseData.playlist.name,
+                    playlistDescription: responseData.playlist.description,
+                    playlistUrl: responseData.playlist.url,
+                    youtubeQuery: `${mood} songs mix`,
+                    apps: [
+                        { name: 'Spotify', url: responseData.playlist.url },
+                        { name: 'YouTube', url: 'https://youtube.com' }
+                    ]
+                },
+                source: 'local'
+            };
+        });
     }
 
     /**
-     * Launch the vibe hub - maps mood to specific web apps
+     * Handle Leo's chat - using API with fallback
+     */
+    async handleLeoChat(userMessage) {
+        if (!this.isConversationActive) return;
+        
+        // Accumulate text for final analysis
+        this.userTextLog += " " + userMessage;
+        
+        // Get Leo's response with API + fallback
+        const response = await this.getLeoResponseFromAPI(userMessage);
+        this.addBotMessage(response.reply);
+    }
+
+    /**
+     * Launch the vibe hub using API response data
+     */
+    launchVibeHubFromAPI(vibeHub, mood) {
+        const hubHTML = `
+            <div class="vibe-card">
+                <p>Analysis Complete! You're in a <strong>${mood}</strong> vibe.</p>
+                <p style="font-size: 0.9em; opacity: 0.8; margin-top: 8px;">${vibeHub.playlistDescription}</p>
+                <div class="btn-container">
+                    <button onclick="window.open('https://www.youtube.com/results?search_query=${encodeURIComponent(vibeHub.youtubeQuery)}', '_blank')">🎵 Open Music</button>
+                    ${vibeHub.apps && vibeHub.apps[0] ? `<button onclick="window.open('${vibeHub.apps[0].url}', '_blank')">🚀 ${vibeHub.apps[0].name}</button>` : ''}
+                </div>
+            </div>
+        `;
+        
+        const messageDiv = document.createElement('div');
+        messageDiv.className = 'message bot-message';
+        messageDiv.setAttribute('data-testid', 'vibe-hub');
+        messageDiv.innerHTML = `
+            <div class="message-avatar bot-avatar">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <circle cx="12" cy="12" r="10" fill="#1DB954"/>
+                    <path d="M8 14s1.5 2 4 2 4-2 4-2M9 9h.01M15 9h.01" stroke="#000" stroke-width="2" stroke-linecap="round"/>
+                </svg>
+            </div>
+            <div class="message-content">
+                ${hubHTML}
+            </div>
+        `;
+        
+        this.chatContainer.appendChild(messageDiv);
+        this.scrollToBottom();
+    }
+
+    /**
+     * Launch the vibe hub - maps mood to specific web apps (LOCAL FALLBACK)
      */
     launchVibeHub(mood) {
         const config = {
@@ -345,12 +534,12 @@ class MoodBotApp {
             'love': { yt: 'love songs bollywood', app: 'https://www.blinkit.com', name: 'Blinkit' },
             'surprise': { yt: 'party dance songs', app: 'https://play.google.com', name: 'Play Store' },
             'fear': { yt: 'lofi study focus', app: 'https://vscode.dev', name: 'VS Code' },
-            'anger': { yt: 'gym workout music', app: 'https://www.youtube.com', name: 'YouTube' }
+            'anger': { yt: 'gym workout music', app: 'https://www.youtube.com', name: 'YouTube' },
+            'neutral': { yt: 'feel good music mix', app: 'https://spotify.com', name: 'Spotify' }
         };
 
         const choice = config[mood] || config['joy'];
 
-        // Professional Hub Card
         const hubHTML = `
             <div class="vibe-card">
                 <p>Analysis Complete! You're in a <strong>${mood}</strong> vibe.</p>
