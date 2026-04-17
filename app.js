@@ -22,12 +22,11 @@ class MoodBotApp {
         this.isProcessing = false;
         this.messageHistory = [];
 
-        // Leo Conversation State
-        this.userTextLog = "";
+        // Leo 8-Step Brain State
+        this.currentStep = 0;
+        this.conversationData = "";
         this.isConversationActive = false;
-        this.messageCount = 0;
         this.maxMessages = 8;
-        this.fullChatLog = "";
 
         // API Configuration - Leo Brain endpoints
         this.apiConfig = {
@@ -310,7 +309,7 @@ class MoodBotApp {
 
         try {
             // If still chatting with Leo, collect their message
-            if (this.isChatting) {
+            if (this.isConversationActive) {
                 await this.delay(600);
                 typingIndicator.remove();
                 this.handleLeoChat(userMessage);
@@ -331,49 +330,65 @@ class MoodBotApp {
     }
 
     /**
-     * Start Leo's conversation - message-count based (8 messages)
+     * Leo 8-Step Brain Questions
+     */
+    leoQuestions = {
+        0: "Do you want to eat something sweetie?.. 🧁",
+        1: "I feel that energy. If today had a theme song, would it be a loud anthem or a quiet melody?",
+        2: "Interesting choice. Tell me, are you currently chasing a goal or just trying to find some peace?",
+        3: "I see. If you could change one thing about your environment right now, what would it be?",
+        4: "That says a lot. In this moment, do you feel like you're the main character or a cozy observer?",
+        5: "We're getting deep now. Pick a texture for your current mood: velvet, neon glass, or rough stone?",
+        6: "Almost there, sweetie. Does your heart need a distraction or a moment to sit with your thoughts?",
+        7: "Last one: If you could teleport anywhere for 1 hour, where are we going?"
+    };
+
+    /**
+     * Start Leo's conversation - 8-step brain based
      */
     startContinuousVibe() {
-        // 1. Leo kicks off the chat
-        this.addBotMessage("Do you want to eat something sweetie?.. 🧁");
+        // Initialize the 8-step brain
+        this.currentStep = 0;
+        this.conversationData = "";
         this.isConversationActive = true;
-        this.messageCount = 0;
-        this.fullChatLog = "";
-        this.userTextLog = "";
         
-        // Show progress container (now shows message counter instead of timer)
+        // Show progress container
         const progressContainer = document.getElementById('vibe-progress-container');
         if (progressContainer) {
             progressContainer.style.display = 'block';
         }
         
+        // Ask first question (Step 0)
+        const firstQuestion = this.leoQuestions[0];
+        this.addBotMessage(firstQuestion);
+        
         // Initialize counter display
-        this.updateCounterUI(this.maxMessages);
+        this.updateCounterUI(0);
     }
 
     /**
-     * Update message counter UI
+     * Update 8-step counter UI
      */
-    updateCounterUI(messagesLeft) {
+    updateCounterUI(completedSteps) {
         const bar = document.getElementById('vibe-bar');
         const text = document.getElementById('timer-text');
         
-        // Progress bar (visual representation of messages)
-        const percentage = ((this.maxMessages - messagesLeft) / this.maxMessages) * 100;
+        // Progress bar (visual representation of steps completed)
+        const percentage = (completedSteps / this.maxMessages) * 100;
         if (bar) {
             bar.style.width = percentage + "%";
         }
         
-        // Display messages left
+        // Display step counter
         if (text) {
-            text.innerText = `${messagesLeft} left`;
+            text.innerText = `${completedSteps}/${this.maxMessages}`;
         }
     }
 
     /**
-     * Process final vibe hub after 8 messages
+     * Analyze and launch vibe hub after 8 steps
      */
-    async processFinalVibe() {
+    async analyzeAndLaunchVibe() {
         this.isConversationActive = false;
         this.userInput.disabled = true;
         this.sendBtn.disabled = true;
@@ -384,22 +399,53 @@ class MoodBotApp {
             progressContainer.style.display = 'none';
         }
         
-        this.addBotMessage("That's 8! 🛑 I've read your vibes perfectly. Here is your escape plan...");
+        this.addBotMessage("8 messages analyzed. ✨ I've got your vibe perfectly. Launching your escape plan...");
         
         try {
-            // Analyze mood from full conversation
-            const mood = await moodDetector.getMood(this.fullChatLog);
+            // Analyze mood from conversation
+            const mood = await moodDetector.getMood(this.conversationData);
             console.log('🎯 Final mood detected:', mood);
             
             await this.delay(800);
             
-            // Launch the vibe hub
-            this.launchVibeHub(mood);
+            // Launch the vibe hub with new vibeMap
+            this.launchVibeHubWithMap(mood);
         } catch (error) {
             console.error('Error analyzing conversation:', error);
             this.addBotMessage('😅 Had a little hiccup analyzing your vibe. But here\'s something for you anyway!');
-            this.launchVibeHub('joy'); // Default fallback
+            this.launchVibeHubWithMap('joy'); // Default fallback
         }
+    }
+
+    /**
+     * Launch vibe hub with the new vibeMap
+     */
+    launchVibeHubWithMap(mood) {
+        const vibeMap = {
+            'romantic': { yt: 'Bollywood Romantic Hits', app: 'https://www.wattpad.com', name: 'Wattpad' },
+            'sadness': { yt: 'Soulful Hindi Sad Songs', app: 'https://www.amazon.in', name: 'Amazon' },
+            'god': { yt: 'Peaceful Bhakti/God Songs', app: 'https://www.pinterest.com/search/pins/?q=god%20aesthetic', name: 'Pinterest' },
+            'joy': { yt: 'Happy Upbeat Bollywood Mix', app: 'https://www.blinkit.com', name: 'Blinkit' },
+            'asmr': { yt: 'Relaxing ASMR Eating', app: 'https://www.blinkit.com', name: 'Blinkit' },
+            'party': { yt: 'Upbeat Party Dance Mix', app: 'https://play.google.com', name: 'Play Store' },
+            'study': { yt: 'Lofi Focus / Study Music', app: 'https://vscode.dev', name: 'VS Code' },
+            'neutral': { yt: 'Feel Good Music Mix', app: 'https://spotify.com', name: 'Spotify' }
+        };
+
+        const choice = vibeMap[mood] || vibeMap['study'];
+        const ytUrl = `https://www.youtube.com/results?search_query=${encodeURIComponent(choice.yt)}`;
+
+        const hubHTML = `
+            <div class="vibe-card">
+                <h3>Mood: ${mood.toUpperCase()}</h3>
+                <div class="btn-group">
+                    <button onclick="window.open('${ytUrl}', '_blank')">🎵 Open Music</button>
+                    <button onclick="window.open('${choice.app}', '_blank')">🚀 Open ${choice.name}</button>
+                </div>
+            </div>
+        `;
+        
+        this.addBotMessage(hubHTML);
     }
 
     /**
@@ -411,11 +457,9 @@ class MoodBotApp {
 
     /**
      * Get Leo's response based on user input - LOCAL FALLBACK
-     * Used when API is unavailable
+     * Used when API is unavailable (not used in 8-step brain, but kept for compatibility)
      */
     getLeoResponseLocal(userInput) {
-        this.userTextLog += " " + userInput;
-        
         const input = userInput.toLowerCase();
         
         // Brain Logic: Reacting to the user's specific text
@@ -464,59 +508,39 @@ class MoodBotApp {
     }
 
     /**
-     * Handle Leo's chat - message counting based
+     * Handle Leo's chat - 8-step brain based
      */
     async handleLeoChat(userMessage) {
         if (!this.isConversationActive) return;
         
-        // 1. Count the message
-        this.messageCount++;
-        this.fullChatLog += " " + userMessage;
-        this.userTextLog += " " + userMessage;
+        // 1. Accumulate conversation data
+        this.conversationData += " " + userMessage;
         
-        // 2. Get Leo's smart response
-        const leoResponse = this.getSmartResponse(userMessage);
-        this.addBotMessage(leoResponse);
+        // 2. Move to next step
+        this.currentStep++;
         
-        // 3. Check if we hit 8 messages
-        const messagesRemaining = this.maxMessages - this.messageCount;
-        if (messagesRemaining <= 0) {
+        // 3. Check if we've reached 8 steps
+        if (this.currentStep >= this.maxMessages) {
             await this.delay(600);
-            this.processFinalVibe();
+            this.analyzeAndLaunchVibe();
             return;
         }
         
-        // 4. Update counter UI
-        this.updateCounterUI(messagesRemaining);
+        // 4. Ask next question from leoQuestions
+        const nextQuestion = this.leoQuestions[this.currentStep];
+        this.addBotMessage(nextQuestion);
+        
+        // 5. Update counter UI
+        this.updateCounterUI(this.currentStep);
     }
 
     /**
-     * Get smart contextual response based on user input
+     * Note: getSmartResponse is deprecated. Use 8-step brain questions instead.
+     * Kept for backward compatibility.
      */
     getSmartResponse(input) {
         const text = input.toLowerCase();
         
-        // Emotion-based responses
-        if (text.includes("eat") || text.includes("hungry")) {
-            return "Food is the best love language! What's your go-to comfort meal? 🍕";
-        }
-        if (text.includes("sad") || text.includes("lonely") || text.includes("cry")) {
-            return "I'm right here with you. Tell me what's weighing on your heart... 🫂";
-        }
-        if (text.includes("busy") || text.includes("study") || text.includes("work")) {
-            return "The hustle is real! Are you keeping your focus or needing a break? ☕";
-        }
-        if (text.includes("happy") || text.includes("excited") || text.includes("great")) {
-            return "OMG that's amazing! I love this energy! Tell me everything! 🌟";
-        }
-        if (text.includes("love") || text.includes("crush") || text.includes("romance")) {
-            return "Ohhh, romance! 💕 Tell me all the juicy details. Who is this special person?";
-        }
-        if (text.includes("music") || text.includes("song") || text.includes("vibe")) {
-            return "Music is life! What's your current obsession? 🎵";
-        }
-        
-        // Default filler responses
         const fillers = [
             "Tell me more, sweetie. I'm all ears... ✨",
             "That's interesting! Keep going, I want to know everything! 👂",
@@ -763,13 +787,17 @@ class MoodBotApp {
     }
 
     /**
-     * Add a simple bot message to the chat
+     * Add a simple bot message to the chat (supports both plain text and HTML)
      */
     addBotMessage(message) {
         const messageDiv = document.createElement('div');
         messageDiv.className = 'message bot-message';
         messageDiv.setAttribute('data-testid', 'bot-message');
         messageDiv.style.animation = 'slideInMessage 0.3s ease';
+
+        // If message starts with HTML tag, render as-is; otherwise wrap in <p>
+        const isHTML = message.trim().startsWith('<');
+        const contentHTML = isHTML ? message : `<p>${message}</p>`;
 
         messageDiv.innerHTML = `
             <div class=\"message-avatar bot-avatar\">
@@ -779,7 +807,7 @@ class MoodBotApp {
                 </svg>
             </div>
             <div class=\"message-content\">
-                <p>${this.formatMessage(message)}</p>
+                ${contentHTML}
             </div>
         `;
 
@@ -870,27 +898,16 @@ class MoodBotApp {
                 return;
             }
         }
-
-        // Stop any running timer
-        if (this.timerInterval) {
-            clearInterval(this.timerInterval);
-            this.timerInterval = null;
-        }
-        if (this.conversationTimer) {
-            clearTimeout(this.conversationTimer);
-            this.conversationTimer = null;
-        }
         
         // Remove all messages except the welcome message
         const messages = this.chatContainer.querySelectorAll('.message:not([data-testid="welcome-message"])');
         messages.forEach(msg => msg.remove());
 
-        // Clear history and reset state
+        // Clear history and reset 8-step brain state
         this.messageHistory = [];
-        this.userAnswers = [];
-        this.currentQuestionIndex = 0;
+        this.currentStep = 0;
+        this.conversationData = "";
         this.isConversationActive = false;
-        this.userTextLog = "";
         
         // Re-enable input
         this.userInput.disabled = false;
