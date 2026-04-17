@@ -1,19 +1,5 @@
-Since you are submitting this for a hackathon, judges usually "skim" before they "read." We can make this much more impactful by using a **Visual Feature Grid** and a **"Why It Matters"** section instead of long paragraphs.
-
-Here is a tighter, high-impact version of your `README.md`:
-
------
-
-# 🎵 MoodStream: Smart Mood Detection Chatbot with AI Backend
-
-> **Real-time emotion detection powered by Leo Brain API. Intelligent conversations. Curated music. All your vibe, no tracking.**
-
----
-
-## 🚀 What's New: Leo Brain API Architecture
-
-MoodStream has evolved! We've introduced a **client-server architecture** with intelligent fallback:
-
+###github link
+https://suhani00796.github.io/MoodStream/
 ```
 ┌─────────────────────────────────┐
 │  Frontend (GitHub Pages)        │
