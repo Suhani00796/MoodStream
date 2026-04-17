@@ -26,24 +26,7 @@ class MoodBotApp {
         this.isChatting = true;
         this.conversationTimer = null;
         this.timerInterval = null;
-        this.timerDisplay = null;
-        this.timeRemaining = 90; // 1:30 minutes in seconds
-        
-        // Leo conversation responses (Gen-Z vibes + Flirty)
-        this.leoResponses = [
-            "OMG tell me more, you're so interesting 👀",
-            "Tell me more, sweetie... I'm totally vibing with this 💫",
-            "Spill the tea! How did that make you feel? 🍵",
-            "Ooh this is juicy, keep talking! 😏",
-            "No way, that's so relatable! Tell me everything 💕",
-            "I hear you, bestie! I'm all ears 👂✨",
-            "Yeah? Period! What else happened? 💅",
-            "That hits different... I need to know MORE 🔥",
-            "You're giving main character energy! Keep going 🌟",
-            "Ayy I love this for you! Spill ☕",
-            "Not you keeping me on the edge of my seat! 😱",
-            "Okay but like... TELL ME MORE 😍"
-        ];
+        this.timerStarted = false;
 
         // Bluetooth device state
         this.bluetoothDevice = null;
@@ -232,127 +215,161 @@ class MoodBotApp {
     initLeo() {
         this.conversationLog = "";
         this.isChatting = true;
-        this.timeRemaining = 90; // Reset to 90 seconds (1:30)
+        this.timerStarted = false;
         
         this.addBotMessage("Hey gorgeous! 💕 Let's chat for a bit and I'll figure out what vibe you're channeling right now... You got 1️⃣:3️⃣0️⃣ minutes! Make it count! ✨");
         console.log('🎤 Leo: Starting conversation (90-second timer)...');
-        
-        // Create and show timer display
-        this.setupTimerDisplay();
-        
-        // Start 90-second timer to wrap up conversation
-        this.conversationTimer = setTimeout(() => this.finishConversation(), 90000);
-        
-        // Start timer interval (updates every second)
-        this.startTimerDisplay();
     }
 
     /**
-     * Handle Leo's natural chat responses
+     * Leo's brain - keyword matching for natural conversation
+     */
+    leoBrain(userInput) {
+        const text = userInput.toLowerCase();
+        this.conversationLog += " " + text;
+
+        // Start the 1:30 timer on the very first message
+        if (!this.timerStarted) {
+            this.startVibeTimer(90); // 90 seconds = 1:30
+            this.timerStarted = true;
+        }
+
+        // Dynamic Response Logic
+        if (text.includes("hungry") || text.includes("eat") || text.includes("food")) {
+            return "Food is life! But tell me, does your stomach feel as chaotic as your day was? 🍕";
+        } else if (text.includes("work") || text.includes("study") || text.includes("stress")) {
+            return "That sounds intense, sweetie. Did you at least take a break, or are you pushing too hard? ☕";
+        } else if (text.includes("happy") || text.includes("good") || text.includes("great")) {
+            return "Love that energy! ✨ What was the best part of the day? Don't leave out the details!";
+        } else if (text.includes("tired") || text.includes("sleepy") || text.includes("exhausted")) {
+            return "Oh no, you're running on empty! 🪫 If you could teleport to your bed right now, would you?";
+        } else {
+            // Fallback for general talk
+            const fillers = [
+                "I'm all ears, tell me more...",
+                "Interesting... how did that make you feel?",
+                "You're so brave for handling that. What happened next?",
+                "I'm vibe-checking everything you're saying. Keep going!"
+            ];
+            return fillers[Math.floor(Math.random() * fillers.length)];
+        }
+    }
+
+    /**
+     * Handle Leo's chat using the brain function
      */
     handleLeoChat(userMessage) {
         if (!this.isChatting) return;
         
-        // Add to conversation log
-        this.conversationLog += " " + userMessage;
-        console.log('Conversation log:', this.conversationLog);
-        
-        // Leo responds naturally with varied responses
-        const responses = this.leoResponses;
-        const randomResp = responses[Math.floor(Math.random() * responses.length)];
-        this.addBotMessage(randomResp);
-        
-        // Add engaging follow-ups sometimes
-        if (Math.random() > 0.7) {
-            const followUps = [
-                "Don't hold back! 😉",
-                "This is so good... 👀",
-                "You're really opening up! 💖",
-                "The chemistry is real ✨"
-            ];
-            setTimeout(() => {
-                if (this.isChatting) {
-                    this.addBotMessage(followUps[Math.floor(Math.random() * followUps.length)]);
-                }
-            }, 1500);
-        }
+        // Get Leo's response using the brain
+        const response = this.leoBrain(userMessage);
+        this.addBotMessage(response);
     }
 
     /**
-     * Setup timer display element
+     * Start the vibe timer (1:30 countdown)
      */
-    setupTimerDisplay() {
-        const timerContainer = document.getElementById('timer-container');
-        if (timerContainer) {
-            timerContainer.style.display = 'flex';
-            timerContainer.innerHTML = '<div id="timer-display" style="font-size: 24px; font-weight: bold; color: #1DB954;">1:30</div>';
-            this.timerDisplay = document.getElementById('timer-display');
-        }
-    }
-    
-    /**
-     * Start updating timer display every second
-     */
-    startTimerDisplay() {
+    startVibeTimer(seconds) {
+        let timeLeft = seconds;
+        const bar = document.getElementById('vibe-bar');
+        const text = document.getElementById('timer-text');
+        
         this.timerInterval = setInterval(() => {
-            this.timeRemaining--;
-            if (this.timerDisplay) {
-                const minutes = Math.floor(this.timeRemaining / 60);
-                const seconds = this.timeRemaining % 60;
-                this.timerDisplay.textContent = `${minutes}:${seconds < 10 ? '0' : ''}${seconds}`;
-                
-                // Change color as time runs out
-                if (this.timeRemaining <= 30) {
-                    this.timerDisplay.style.color = '#FF6B6B'; // Red
-                } else if (this.timeRemaining <= 60) {
-                    this.timerDisplay.style.color = '#FFD93D'; // Yellow
-                }
+            timeLeft--;
+            
+            // Update Bar Width
+            const percentage = (timeLeft / seconds) * 100;
+            if (bar) {
+                bar.style.width = percentage + "%";
             }
             
-            if (this.timeRemaining <= 0) {
-                this.stopTimerDisplay();
+            // Update Text
+            const mins = Math.floor(timeLeft / 60);
+            const secs = timeLeft % 60;
+            if (text) {
+                text.innerText = `${mins}:${secs < 10 ? '0' : ''}${secs}`;
+            }
+
+            if (timeLeft <= 0) {
+                clearInterval(this.timerInterval);
+                this.finishChatAndLaunch();
             }
         }, 1000);
     }
-    
-    /**
-     * Stop timer display
-     */
-    stopTimerDisplay() {
-        if (this.timerInterval) {
-            clearInterval(this.timerInterval);
-            this.timerInterval = null;
-        }
-        const timerContainer = document.getElementById('timer-container');
-        if (timerContainer) {
-            timerContainer.style.display = 'none';
-        }
-    }
 
     /**
-     * Finish conversation and analyze mood
+     * Finish chat and launch the vibe hub
      */
-    async finishConversation() {
-        this.stopTimerDisplay();
+    async finishChatAndLaunch() {
         this.isChatting = false;
         this.userInput.disabled = true;
         this.sendBtn.disabled = true;
         
-        this.addBotMessage("🔥 Time's up, babe! I've got your number now... Let me cook something SPECIAL for you based on your energy right now! ✨");
-        
+        this.addBotMessage("Times up! 🛑 I've analyzed your day. Here is your custom escape plan...");
+
         try {
-            // Analyze the whole conversation
-            const detectedMood = await moodDetector.getMood(this.conversationLog);
-            console.log('🎯 Final mood detected:', detectedMood);
+            // Use your existing model to get the mood from the whole history
+            const finalMood = await moodDetector.getMood(this.conversationLog);
+            console.log('🎯 Final mood detected:', finalMood);
             
-            // Render the Vibe Hub
+            // Define the apps based on mood
+            const apps = {
+                'romantic': { yt: 'romantic bollywood', link: 'https://www.wattpad.com', name: 'Wattpad' },
+                'sadness': { yt: 'sad hindi songs', link: 'https://www.amazon.in', name: 'Amazon' },
+                'joy': { yt: 'bhakti songs', link: 'https://www.pinterest.com', name: 'Pinterest' },
+                'love': { yt: 'love songs bollywood', link: 'https://www.blinkit.com', name: 'Blinkit' },
+                'surprise': { yt: 'party dance mix', link: 'https://play.google.com', name: 'Play Store' },
+                'fear': { yt: 'lofi study', link: 'https://vscode.dev', name: 'VS Code' },
+                'anger': { yt: 'gym workout music', link: 'https://www.youtube.com', name: 'YouTube' }
+            };
+
+            const choice = apps[finalMood] || apps['joy'];
+            
             await this.delay(800);
-            this.renderVibeHub(detectedMood);
+            
+            // Display the Hub
+            this.displayVibeHub(finalMood, choice);
         } catch (error) {
             console.error('Error analyzing conversation:', error);
             this.addBotMessage('😅 Had a little hiccup analyzing your vibe. But here\'s something for you anyway!');
-            this.renderVibeHub('joy'); // Default fallback
+            const defaultChoice = { yt: 'lofi study', link: 'https://www.youtube.com', name: 'YouTube' };
+            this.displayVibeHub('joy', defaultChoice);
         }
+    }
+
+    /**
+     * Display the vibe hub with music and app launch options
+     */
+    displayVibeHub(mood, choice) {
+        const hubHTML = `
+            <div class="vibe-hub-launch">
+                <div class="vibe-hub-card">
+                    <p style="margin-bottom: 16px;"><strong>✨ I've curated a <span style="color: #1DB954;">${mood}</span> vibe for you.</strong></p>
+                    <div class="vibe-hub-buttons">
+                        <button class="vibe-hub-btn" onclick="window.open('https://www.youtube.com/results?search_query=${encodeURIComponent(choice.yt)}', '_blank')">🎵 Play Music</button>
+                        <button class="vibe-hub-btn" onclick="window.open('${choice.link}', '_blank')">🚀 Launch ${choice.name}</button>
+                    </div>
+                </div>
+            </div>
+        `;
+        
+        const messageDiv = document.createElement('div');
+        messageDiv.className = 'message bot-message';
+        messageDiv.setAttribute('data-testid', 'vibe-hub');
+        messageDiv.innerHTML = `
+            <div class="message-avatar bot-avatar">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <circle cx="12" cy="12" r="10" fill="#1DB954"/>
+                    <path d="M8 14s1.5 2 4 2 4-2 4-2M9 9h.01M15 9h.01" stroke="#000" stroke-width="2" stroke-linecap="round"/>
+                </svg>
+            </div>
+            <div class="message-content">
+                ${hubHTML}
+            </div>
+        `;
+        
+        this.chatContainer.appendChild(messageDiv);
+        this.scrollToBottom();
     }
 
     /**
@@ -632,11 +649,12 @@ class MoodBotApp {
         const messages = this.chatContainer.querySelectorAll('.message:not([data-testid="welcome-message"])');
         messages.forEach(msg => msg.remove());
 
-        // Clear history and reset to question mode
+        // Clear history and reset state
         this.messageHistory = [];
         this.userAnswers = [];
         this.currentQuestionIndex = 0;
         this.isChatting = true;
+        this.timerStarted = false;
         
         // Re-enable input
         this.userInput.disabled = false;

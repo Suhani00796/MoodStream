@@ -91,14 +91,14 @@
                     </svg>
                     <span class="bluetooth-status">Connect</span>
                 </button>
-                <div id="timer-container" class="timer-container" style="display: none;">
-                    <div id="timer-display" class="timer-display">1:30</div>
-                    <span class="timer-label">remaining</span>
-                </div>
             </div>
         </header>
 
         <div id="chat-container" class="chat-messages" data-testid="chat-container">
+            <div id="vibe-progress-container" style="display: none;">
+                <div id="vibe-bar"></div>
+                <span id="timer-text">1:30</span>
+            </div>
             <div class="message bot-message" data-testid="welcome-message">
                 <div class="message-avatar bot-avatar">
                     <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
