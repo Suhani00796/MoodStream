@@ -28,27 +28,6 @@ https://suhani00796.github.io/MoodStream/
 
 ---
 
-## 🎯 Architecture Overview
-
-### Frontend (`/` - GitHub Pages)
-- **Technology**: Vanilla JavaScript, CSS3, Service Workers
-- **Features**: 
-  - Chat interface with 1:30 timer
-  - WhatsApp-style login
-  - Automatic API detection (localhost for dev, Render for production)
-  - Graceful fallback to local keyword detection
-- **File**: `app.js` with `getLeoResponseFromAPI()` + `analyzeMoodFromAPI()` 
-
-### Backend API (`/api` - Node.js/Express)
-- **Deployment**: Render (Free tier compatible)
-- **Endpoints**:
-  - `POST /leo-chat` → Get Leo's response
-  - `POST /analyze-mood` → Final mood + vibe hub
-- **Brain Logic**: Keyword-based mood detection (60+ keywords) + contextual responses
-- **Files**: `api/utils/leo-brain.js`, `api/utils/mood-detector.js`
-
----
-
 ## ✨ Key Features
 
 | Feature | Status | Details |
